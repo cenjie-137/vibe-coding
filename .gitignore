@@ -1,0 +1,36 @@
+# ===== Python =====
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# ===== 模型权重 / 检查点 =====
+*.pth
+*.pt
+*.ckpt
+*.onnx
+*.safetensors
+*.h5
+
+# ===== 大型数据 / 压缩包（不纳入版本控制）=====
+*.tar
+*.tar.gz
+*.zip
+*.nii.gz
+*.npy
+*.npz
+*.tif
+*.tiff
+
+# ===== 数据 / 提交产物目录 =====
+data/
+docker_submission/
+test_input/
+test_output/
+
+# ===== 本地工具 / IDE / 系统 =====
+.agents/
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
