@@ -25,7 +25,7 @@
 |--------|------|------|--------------|------------------|------|------|
 | DRIVE | 视网膜血管分割（像素级） | 眼底彩照 | MultiResUNet-CBAM（从头） | Test Dice **0.8280**（rank 86） | — | ✅ 完成 |
 | PUMA | 黑色素瘤组织 5 类（Micro Dice） | H&E ROI | FoundationUNet / **UNI** | 5-fold TTA micro Dice **0.6762** | 0.5548 | ✅ 完成 |
-| GLaS | 结肠腺体分割（对象级 F1/Dice） | H&E | GlandUNet / **UNI**（DCAN 式双头） | testB objDice **0.7316** / objF1 **0.7436**（v1+阈值调优；v2 回归已弃用） | — | 🔄 迭代中 |
+| GLaS | 结肠腺体分割（对象级 F1/Dice） | H&E | GlandUNet / **UNI**（DCAN 式双头） | testB objDice **0.7513** / objF1 **0.7622**（watershed 后处理） | — | 🔄 迭代中 |
 | BEETLE | 乳腺组织 4 类（Overall Dice） | H&E WSI | 待定 | 未训练 | 0.87 | ⏳ 数据准备 |
 
 > 核心结论（论文主线）：**病理基础模型 UNI（ViT-L/16）在病理任务上一致大幅超越 ImageNet 预训练**（PUMA micro Dice +15% vs ResNet34；GLaS 用 UNI+轮廓双头可稳定收敛到对象级分割可行方案）。细线状/小目标结构（血管、blood_vessel）是所有 ViT-like 骨干的共同短板。
@@ -62,8 +62,9 @@
 
 - **数据**：165 张（85 train / 60 testA / 20 testB，全部公开 GT），H&E，尺寸 517~775×430~522；评估为**对象级 F1 + Dice**（按 benign/malignant 分组）。
 - **最终方案**：GlandUNet = UNI 编码器 + 4 层解码头 + **分割头 / 轮廓头（DCAN 式）双任务**；损失 = BCE+2×Dice（seg）+ 带 pos_weight 的 BCE+Dice（contour）；后处理 = 前景减轮廓 + 连通域去小碎片。
-- **结果（v1，512px）**：5-fold val 均值 objDice **0.8075**；testB objDice **0.7164** / objF1 **0.7266**，阈值调优后 **0.7316 / 0.7436**（best: seg=0.5 / cont=0.6 / min_area=20）。
+- **结果（v1，512px）**：5-fold val 均值 objDice **0.8075**；testB objDice **0.7164** / objF1 **0.7266**，轮廓法阈值调优后 **0.7316 / 0.7436**（best: seg=0.5 / cont=0.6 / min_area=20）。
   - benign F1 0.87 vs malignant F1 0.69 → 瓶颈在**密集粘连的恶性腺体**的实例分离。
+- **watershed 后处理（Step 0，v1 权重不重训）**：testB objDice **0.7513** / objF1 **0.7622**（best: seg=0.3 / fg_dist=0.2 / min_area=30），较轮廓法再 +0.02；testA objDice **0.8198** / objF1 **0.8908**（best: seg=0.6 / fg_dist=0.2 / min_area=30）。距离变换找中心种子 + 轮廓概率地形分水岭，有效切割粘连腺体 → **当前最优方案**。
 - **v2 重训（768px + 深 ResBlock 解码 + 强增强）→ 回归，弃用**：5-fold val objD 均值 **0.7873**（< v1 0.8075）；testB objDice **0.6867** / objF1 **0.7235**（< v1 raw 0.7164/0.7266，未调优）；testA objDice 0.8156 / objF1 0.8735。三项叠加反而掉点，且为混淆变量无法归因；**保留 v1 为当前最优**。
 - **SOTA 参照（testB Dice）**：DCAN 0.897 / MILD-Net 0.913 / RIC-UNet 0.918。
 - **关键结论**：对象级评估的碾压项是**实例分离**；纯像素二值分割（把粘连腺体当一个连通域）F1 直接拉垮，必须加轮廓/分水岭后处理。
@@ -101,8 +102,9 @@
 | PUMA | SegFormer-B2 编码器 | 细线状结构（blood_vessel）弱 | ❌ 换 UNI |
 | PUMA | 差分学习率 encoder×0.1 | 保护预训练特征 | ✅ 保留 |
 | GLaS | 轮廓头（DCAN 双任务） | 实例分离关键，防粘连腺体并成单连通域 | ✅ 核心 |
-| GLaS | 阈值调优 seg/cont/min_area | testB objDice 0.7164→**0.7316** | ✅ 保留 |
+| GLaS | 阈值调优 seg/cont/min_area（轮廓法） | testB objDice 0.7164→**0.7316** | ✅ 保留 |
 | GLaS | v2：768px+深 ResBlock 解码+强增强 | val 0.7873 / testB 0.6867，全面低于 v1 | ❌ 弃用（回归） |
+| GLaS | 分水岭后处理（距离变换种子 + 轮廓地形） | testB 0.7316→**0.7513**，testA 0.8198 | ✅ 保留（当前最优） |
 
 ---
 
@@ -134,7 +136,7 @@ python train_glas.py --data_dir .../data/glas --folds 0 1 2 3 4 \
 ## 7. 待办 / 下一步
 
 - [x] GLaS v2 训练完成：5-fold val 0.7873 / testB objDice 0.6867，全面低于 v1，回归弃用。
-- [ ] Step 0（进行中）：分水岭后处理 `postprocess_watershed` 在 v1 权重上调阈值，看 testB 涨跌。
+- [x] Step 0 完成：分水岭后处理 testB objDice 0.7316→**0.7513**、testA 0.8198，超越轮廓法，暂定为当前最优后处理。
 - [ ] Step 1（Step 0 验证后再做）：HoVer-Net 式距离图 head 重训。
 - [ ] BEETLE 数据准备 + 基线训练。
 - [ ] 增加非病理非血管任务（如 SIIM）补全框架通用性验证。
