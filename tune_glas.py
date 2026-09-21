@@ -31,6 +31,7 @@ def main():
     parser.add_argument('--target_size', type=int, default=512)
     parser.add_argument('--split', default='testB', choices=['testB', 'testA'])
     parser.add_argument('--method', choices=['contour', 'watershed'], default='watershed')
+    parser.add_argument('--model', choices=['cnndcan', 'glas_unet'], default='cnndcan')
     parser.add_argument('--seg_ths', nargs='+', type=float,
                         default=[0.3, 0.4, 0.5, 0.6])
     parser.add_argument('--cont_ths', nargs='+', type=float,
@@ -42,7 +43,7 @@ def main():
     args = parser.parse_args()
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    models = load_models(args.weights_dir, args.folds, device)
+    models = load_models(args.weights_dir, args.folds, device, model=args.model)
     if not models:
         raise FileNotFoundError(f"未在 {args.weights_dir} 找到 best_fold_*.pth")
 

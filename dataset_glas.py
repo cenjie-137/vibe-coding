@@ -64,7 +64,7 @@ def augment_glas(img, seg, contour):
 
 
 class GLASDataset(Dataset):
-    def __init__(self, image_dir, mask_dir, file_list, target_size=768, augment=False):
+    def __init__(self, image_dir, mask_dir, file_list, target_size=512, augment=False):
         self.image_dir = image_dir
         self.mask_dir = mask_dir
         self.file_list = file_list
@@ -116,7 +116,7 @@ def load_grades(metadata_path):
 
 
 def get_glas_dataloaders(data_dir, fold=0, total_folds=5, batch_size=4,
-                         target_size=768, num_workers=4):
+                         target_size=512, num_workers=4):
     image_dir = os.path.join(data_dir, 'images')
     mask_dir = os.path.join(data_dir, 'masks')
     grades = load_grades(os.path.join(data_dir, 'metadata.csv'))

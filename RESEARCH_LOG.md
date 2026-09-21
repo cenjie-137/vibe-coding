@@ -1,6 +1,6 @@
 # 医学影像分割基准研究 — 实验日志（精简版）
 
-> 研究主题：AI 辅助（LLM + vibe coding）医学影像分割的标准化、可复现框架，并在多个竞赛数据集上做基准验证。
+> 研究主题：**用 AI（LLM + vibe coding）复现各竞赛的 SOTA 方法、把指标冲到尽可能高，以验证 vibe coding 在医学分割上的可行性与上限**；过程中沉淀标准化、可复现的 prompt 工作流与复现清单。
 > 本文档只保留**最终结果、方法选型理由、可迁移结论、复现清单**；过程性逐条调参记录已精简。
 > 维护规则：**每完成一次有结论的实验（训练/推理/调优/提交）就立即更新本文档。**
 
@@ -28,7 +28,7 @@
 | GLaS | 结肠腺体分割（对象级 F1/Dice） | H&E | GlandUNet / **UNI**（DCAN 式双头） | testB objDice **0.7513** / objF1 **0.7622**（watershed 后处理） | — | 🔄 迭代中 |
 | BEETLE | 乳腺组织 4 类（Overall Dice） | H&E WSI | 待定 | 未训练 | 0.87 | ⏳ 数据准备 |
 
-> 核心结论（论文主线）：**病理基础模型 UNI（ViT-L/16）在病理任务上一致大幅超越 ImageNet 预训练**（PUMA micro Dice +15% vs ResNet34；GLaS 用 UNI+轮廓双头可稳定收敛到对象级分割可行方案）。细线状/小目标结构（血管、blood_vessel）是所有 ViT-like 骨干的共同短板。
+> 核心结论（论文主线）：**用 vibe coding 复现 SOTA、验证能冲多高**。已有一正一反两个证据：① PUMA 用 UNI 复现出超 baseline +12% 的 SOTA 级效果（micro Dice 0.6762）；② GLaS 则暴露 vibe coding 的痛点——AI 调研把方向带偏、误锁"病理基础模型"，而实际冠军/SOTA 是 CNN 轮廓方法（DCAN/MILD-Net/RIC-UNet）。
 
 ---
 
@@ -68,6 +68,7 @@
 - **v2 重训（768px + 深 ResBlock 解码 + 强增强）→ 回归，弃用**：5-fold val objD 均值 **0.7873**（< v1 0.8075）；testB objDice **0.6867** / objF1 **0.7235**（< v1 raw 0.7164/0.7266，未调优）；testA objDice 0.8156 / objF1 0.8735。三项叠加反而掉点，且为混淆变量无法归因；**保留 v1 为当前最优**。
 - **SOTA 参照（testB Dice）**：DCAN 0.897 / MILD-Net 0.913 / RIC-UNet 0.918。
 - **关键结论**：对象级评估的碾压项是**实例分离**；纯像素二值分割（把粘连腺体当一个连通域）F1 直接拉垮，必须加轮廓/分水岭后处理。
+- **方向纠偏（vibe coding 痛点 + 转向）**：早前 Step 0 调研其实**已记录 SOTA 是 CNN**（DCAN 0.897 / MILD-Net 0.913 / RIC-UNet 0.918），但实现时被 AI 带偏，误把病理基础模型 UNI(ViT-L) 当主推——85 张小图喂不饱 ViT、解码头还缺 skip 连接，导致 testB 仅 0.7513，落后朴素 U-Net 基线（0.768）。**已纠正**：按冠军 DCAN 配方重写为 `GlandCNNDCAN`（ResNet34 ImageNet 编码器 + skip 解码 + seg/contour 双头 + 多级深监督），对标 DCAN 0.897、再向 RIC-UNet 0.918 冲。
 
 ### 3.4 BEETLE — 乳腺组织分割（未开始训练）
 
@@ -78,7 +79,7 @@
 
 ## 4. 跨数据集结论（论文 Discussion 素材）
 
-1. **病理基础模型通用性**：UNI 对病理组织分割（PUMA、GLaS）一致优于 ImageNet，是病理任务的"开箱即用"提升。
+1. **病理基础模型并非万能（任务依赖）**：UNI 在 PUMA（多类/类别极不平衡/病灶小）上大幅领先（+12~15%），但在 GLaS（二值/小样本/大腺体）上与 U-Net 基线持平，不能默认所有病理任务都套 ViT 基础模型。
 2. **共同短板—细结构**：小血管 / blood_vessel 是 ViT 骨干 + 小 batch 下的普遍弱点（DRIVE、PUMA、GLaS 恶性腺体边界）。
 3. **后处理必须匹配评估协议**：像素级（DRIVE）要避免删小目标；对象级（GLaS）必须做实例分离。
 4. **损失函数对小类的负作用**：Lovász、激进类权重、copy-paste、过采样都可能在稀疏类上反噬；Focal 温和加权最稳。
@@ -105,6 +106,8 @@
 | GLaS | 阈值调优 seg/cont/min_area（轮廓法） | testB objDice 0.7164→**0.7316** | ✅ 保留 |
 | GLaS | v2：768px+深 ResBlock 解码+强增强 | val 0.7873 / testB 0.6867，全面低于 v1 | ❌ 弃用（回归） |
 | GLaS | 分水岭后处理（距离变换种子 + 轮廓地形） | testB 0.7316→**0.7513**，testA 0.8198 | ✅ 保留（当前最优） |
+| GLaS | 误用 UNI(ViT-L) 编码器 + 无 skip 解码头 | testB 0.7513，落后 U-Net 基线 0.768 | ❌ 方向带偏（vibe coding 痛点） |
+| GLaS | 转向 CNN DCAN：ResNet34+skip+双头+深监督 | 对标 DCAN 0.897 / RIC-UNet 0.918 | 🔄 训练中 |
 
 ---
 
@@ -126,9 +129,14 @@ python train_puma.py --folds 0 1 2 3 4 --model foundation_uni \
   --batch_size 4 --target_size 512 --epochs 100 --lr 1e-4 \
   --patience 50 --warmup_epochs 10 --label_smoothing 0.1
 
-# GLaS v2（进行中，768px + 更深解码头）
+# GLaS Step 1（进行中）：CNN DCAN 转向，对标冠军 DCAN 0.897
 python train_glas.py --data_dir .../data/glas --folds 0 1 2 3 4 \
-  --epochs 100 --batch_size 2 --target_size 768 --output_dir .../output_glas_v2
+  --model cnndcan --batch_size 8 --target_size 512 --epochs 100 \
+  --output_dir .../output_glas_cnndcan
+# 训练后推理 + 阈值扫描：
+python tune_glas.py --data_dir .../data/glas --weights_dir .../output_glas_cnndcan \
+  --output_dir .../output_glas_cnndcan/preds_tuned --folds 5 --split testB \
+  --method watershed --model cnndcan
 ```
 
 ---
@@ -137,7 +145,8 @@ python train_glas.py --data_dir .../data/glas --folds 0 1 2 3 4 \
 
 - [x] GLaS v2 训练完成：5-fold val 0.7873 / testB objDice 0.6867，全面低于 v1，回归弃用。
 - [x] Step 0 完成：分水岭后处理 testB objDice 0.7316→**0.7513**、testA 0.8198，超越轮廓法，暂定为当前最优后处理。
-- [ ] Step 1（Step 0 验证后再做）：HoVer-Net 式距离图 head 重训。
+- [ ] Step 1（进行中）：GLaS 转向 CNN DCAN（ResNet34 编码器 + skip + 双头 + 深监督），对标冠军 DCAN 0.897。
+- [ ] Step 2（Step 1 后，冲 0.91 可选）：RIC-UNet 残差+Inception 或 HoVer-Net 式距离图 head。
 - [ ] BEETLE 数据准备 + 基线训练。
 - [ ] 增加非病理非血管任务（如 SIIM）补全框架通用性验证。
 - [ ] 汇总做统计显著性检验（UNI vs ImageNet，配对 t 检验）。

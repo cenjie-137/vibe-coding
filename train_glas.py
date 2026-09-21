@@ -1,6 +1,8 @@
-"""train_glas.py — GLaS 5-fold 训练（DCAN 式双头 + UNI 差分学习率）
+"""train_glas.py — GLaS 5-fold 训练（DCAN 式双头）
 
-损失：seg = BCE + 2×Dice；contour = BCE(pos_weight) + Dice；total = seg + 0.5×contour
+默认模型 cnndcan：ResNet34(ImageNet) 编码器 + skip 解码 + seg/contour 双头 + 多级深监督。
+可用 --model glas_unet 切回旧的 UNI ViT 版本做对照。
+损失：seg = BCE + 2×Dice；contour = BCE(pos_weight) + Dice；total = seg + 0.5×contour（+ 深监督副头）
 选择最优模型：基于验证集 object-level Dice（TTA 后）。
 """
 import argparse
@@ -17,7 +19,7 @@ from torch.utils.data import DataLoader
 
 from eval_glas import object_dice, object_f1
 from dataset_glas import get_glas_dataloaders
-from models_glas import GlandUNet
+from models_glas import GlandUNet, GlandCNNDCAN
 
 
 def set_seed(seed=42):
@@ -113,7 +115,10 @@ def train_fold(args, fold, device):
         num_workers=args.num_workers,
     )
 
-    model = GlandUNet(model_source=args.model_source, freeze_encoder=args.freeze_encoder)
+    if args.model == 'cnndcan':
+        model = GlandCNNDCAN()
+    else:
+        model = GlandUNet(model_source=args.model_source, freeze_encoder=args.freeze_encoder)
     model.to(device)
 
     encoder_params = [p for n, p in model.named_parameters()
@@ -142,8 +147,15 @@ def train_fold(args, fold, device):
 
             optimizer.zero_grad()
             with torch.cuda.amp.autocast(enabled=(device == 'cuda')):
-                seg_logit, cont_logit = model(images)
-                loss, seg_loss, cont_loss = seg_contour_loss(seg_logit, segs, cont_logit, contours)
+                out = model(images)
+                if args.model == 'cnndcan':
+                    seg_logit, cont_logit, aux = out
+                    loss, seg_loss, cont_loss = seg_contour_loss(seg_logit, segs, cont_logit, contours)
+                    for a_seg, a_cont in aux:
+                        loss = loss + 0.4 * seg_contour_loss(a_seg, segs, a_cont, contours)[0]
+                else:
+                    seg_logit, cont_logit = out
+                    loss, seg_loss, cont_loss = seg_contour_loss(seg_logit, segs, cont_logit, contours)
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
@@ -184,8 +196,8 @@ def main():
     parser.add_argument('--data_dir', required=True)
     parser.add_argument('--folds', nargs='+', type=int, default=[0, 1, 2, 3, 4])
     parser.add_argument('--total_folds', type=int, default=5)
-    parser.add_argument('--batch_size', type=int, default=2)
-    parser.add_argument('--target_size', type=int, default=768)
+    parser.add_argument('--batch_size', type=int, default=8)
+    parser.add_argument('--target_size', type=int, default=512)
     parser.add_argument('--epochs', type=int, default=100)
     parser.add_argument('--lr', type=float, default=1e-4)
     parser.add_argument('--encoder_lr_factor', type=float, default=0.1)
@@ -194,6 +206,7 @@ def main():
     parser.add_argument('--patience', type=int, default=15)
     parser.add_argument('--freeze_encoder', action='store_true')
     parser.add_argument('--model_source', default='UNI')
+    parser.add_argument('--model', choices=['cnndcan', 'glas_unet'], default='cnndcan')
     parser.add_argument('--num_workers', type=int, default=4)
     parser.add_argument('--output_dir', required=True)
     args = parser.parse_args()

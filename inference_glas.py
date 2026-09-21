@@ -18,21 +18,24 @@ from PIL import Image
 from scipy import ndimage
 import cv2
 
-from models_glas import GlandUNet
+from models_glas import GlandUNet, GlandCNNDCAN
 
 
-def load_models(weights_dir, num_folds, device):
+def load_models(weights_dir, num_folds, device, model='glas_unet'):
     models = []
     for k in range(num_folds):
         path = os.path.join(weights_dir, f"best_fold_{k}.pth")
         if not os.path.exists(path):
             print(f"[warn] 缺少 {path}，跳过")
             continue
-        model = GlandUNet(model_source="UNI", freeze_encoder=False)
+        if model == 'cnndcan':
+            mdl = GlandCNNDCAN()
+        else:
+            mdl = GlandUNet(model_source="UNI", freeze_encoder=False)
         ckpt = torch.load(path, map_location=device)
-        model.load_state_dict(ckpt['model'])
-        model.to(device).eval()
-        models.append(model)
+        mdl.load_state_dict(ckpt['model'])
+        mdl.to(device).eval()
+        models.append(mdl)
     return models
 
 
@@ -174,10 +177,11 @@ def main():
     parser.add_argument('--cont_thresh', type=float, default=0.5)
     parser.add_argument('--method', choices=['contour', 'watershed'], default='watershed')
     parser.add_argument('--fg_dist_thresh', type=float, default=0.4)
+    parser.add_argument('--model', choices=['cnndcan', 'glas_unet'], default='cnndcan')
     args = parser.parse_args()
 
     device = 'cuda' if torch.cuda.is_available() else 'cpu'
-    models = load_models(args.weights_dir, args.folds, device)
+    models = load_models(args.weights_dir, args.folds, device, model=args.model)
     if not models:
         raise FileNotFoundError(f"未在 {args.weights_dir} 找到 best_fold_*.pth")
 
