@@ -1,0 +1,13 @@
+{
+  "trace": "autorun/episodes/EP_loop_PUMA_20261008_204142/run_log.jsonl",
+  "policy_version": "1.7",
+  "policy_source": "snapshot",
+  "policy_path": "autorun/episodes/EP_loop_PUMA_20261008_204142/policy_snapshot.json",
+  "n_decisions": 1,
+  "n_replayed": 1,
+  "n_matched": 1,
+  "n_mismatched": 0,
+  "replayable": true,
+  "chain_hash": "sha256:d16d5727ed87dc72849b3c48f6385369",
+  "mismatches": []
+}

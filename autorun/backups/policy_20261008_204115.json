@@ -1,5 +1,5 @@
 {
-  "version": "1.7",
+  "version": "1.6",
   "_comment": "机器可读契约 —— judge.py / redlines.py / ledger.py 的唯一数据源。数值必须与 AUTONOMY_POLICY.md 一致。改动只能由人执行，改完版本号 +1 并 git commit（红线 R7）。",
   "targets": {
     "GLaS": {
@@ -20,16 +20,6 @@
       "l1": 0.799,
       "l2": null,
       "l1_note": "榜前 50% 门槛需先确认榜单总条目数，故 L2 暂空（LLM 轨道目前 rank 86） ｜ 来源：RESEARCH_LOG.md#nnunet-drive",
-      "l2_note": "未核实 / 未定义"
-    },
-    "PUMA": {
-      "metric": "micro_dice",
-      "subset": "val",
-      "convention": "official_micro_dice",
-      "eval_script": "eval_puma_official.py",
-      "l1": 0.5548,
-      "l2": null,
-      "l1_note": "基线已实测 0.5548（nnU-Net v2，官方 micro Dice，来源 RESEARCH_LOG §3.2）。 【2026-10-08 转 active】官方评估脚本 eval_puma_official.py 就位（4/4 自检通过）并进 R5 allowlist；L2 暂空 —— 公开报告值多在挑战赛最终测试集上（不同 subset）， 按红线 R1 不可与我们的 val(5 折 CV) 直接比，需先核实同 subset 的可比值。\n ｜ 来源：RESEARCH_LOG.md#puma",
       "l2_note": "未核实 / 未定义"
     }
   },
@@ -62,8 +52,7 @@
   "eval": {
     "convention_lock": true,
     "allowlist": [
-      "eval_glas_official.py",
-      "eval_puma_official.py"
+      "eval_glas_official.py"
     ],
     "_note": "R5 评估锁定：只有白名单里的官方协议脚本算出的数字才能进入判定。新数据集核实官方协议后把脚本名加进来。"
   },
@@ -167,16 +156,16 @@
       "note": "榜前 50% 门槛需先确认榜单总条目数，故 L2 暂空（LLM 轨道目前 rank 86）"
     },
     "PUMA": {
-      "status": "active",
+      "status": "preparing",
       "dim": "2D",
       "modality": "histology_H&E",
       "classes": 6,
       "metric": "micro_dice",
       "subset": "val",
       "convention": "official_micro_dice",
-      "eval_script": "eval_puma_official.py",
+      "eval_script": null,
       "verified": true,
-      "note": "基线已实测 0.5548（nnU-Net v2，官方 micro Dice，来源 RESEARCH_LOG §3.2）。 【2026-10-08 转 active】官方评估脚本 eval_puma_official.py 就位（4/4 自检通过）并进 R5 allowlist；L2 暂空 —— 公开报告值多在挑战赛最终测试集上（不同 subset）， 按红线 R1 不可与我们的 val(5 折 CV) 直接比，需先核实同 subset 的可比值。\n"
+      "note": "基线已实测 0.5548（nnU-Net v2，官方 micro Dice）；补上官方评估脚本并进 allowlist 后即可转 active"
     },
     "ISIC2018": {
       "status": "planned",
@@ -325,5 +314,5 @@
   },
   "_catalog_note": "全部数据集清单（含 planned），由 datasets.yaml 编译而来；判定器只读 targets，不读 catalog。",
   "_compiled_from": "autorun/datasets.yaml",
-  "_compiled_at": "2026-10-08T20:41:15+08:00"
+  "_compiled_at": "2026-10-08T19:37:21+08:00"
 }

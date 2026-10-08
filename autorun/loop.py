@@ -65,6 +65,12 @@ def rel(path) -> str:
     return p.relative_to(ROOT).as_posix() if str(p).startswith(str(ROOT)) else str(p)
 
 
+def _default_state(task: str) -> Path:
+    """该 task 的默认状态文件：有 `state_<task>.json` 就用它，否则回落到 state.json（GLaS）。"""
+    p = HERE / f"state_{task}.json"
+    return p if p.exists() else STATE
+
+
 def argval(flag: str, default=None):
     if flag in sys.argv:
         i = sys.argv.index(flag)
@@ -74,9 +80,9 @@ def argval(flag: str, default=None):
 
 
 def advance_route(state: dict, route_ids: list[str]) -> str:
-    """按 ROUTE_POOL 顺序取下一条：当前路线记失败（锚点除外），计数归零。"""
+    """按该 task 的路线池顺序取下一条：当前路线记失败（锚点除外），计数归零。"""
     cur = state.get("current_route")
-    pool = {r["id"]: r for r in runner.load_routes()}
+    pool = {r["id"]: r for r in runner.load_routes(state.get("task") or "GLaS")}
     if cur and pool.get(cur, {}).get("status") != "anchor" \
             and cur not in (state.get("routes_failed") or []):
         state["routes_failed"] = list(state.get("routes_failed") or []) + [cur]
@@ -144,7 +150,7 @@ def main() -> int:
     task = argval("--task", "GLaS")
     max_rounds = int(argval("--max-rounds", "8"))
     dry = "--dry-run" in sys.argv
-    state_path = Path(argval("--state", str(STATE)))
+    state_path = Path(argval("--state", str(_default_state(task))))
     run_log = Path(argval("--run-log", str(RUN_LOG)))
     claims = Path(argval("--claims", str(DEFAULT_CLAIMS)))
     ts = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -157,7 +163,7 @@ def main() -> int:
         return 2
 
     policy = load(POLICY)
-    route_ids = [r["id"] for r in runner.load_routes()]
+    route_ids = [r["id"] for r in runner.load_routes(task)]
 
     if dry:
         d, r, detail = judge.decide(state, policy)

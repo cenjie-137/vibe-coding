@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-10-08T20:25:46+08:00",
-  "policy_version": "1.6",
+  "generated_at": "2026-10-08T20:45:07+08:00",
+  "policy_version": "1.7",
   "n_checks": 8,
   "n_passed": 8,
   "all_passed": true,
@@ -38,7 +38,7 @@
       "name": "红线审计（当前产物）",
       "cmd": "redlines.py --audit",
       "ok": true,
-      "detail": "共 17 项检查，0 项违规"
+      "detail": "共 18 项检查，0 项违规"
     },
     {
       "kind": "audit",
@@ -59,16 +59,16 @@
       "name": "可信记分卡",
       "cmd": "ledger.py --scorecard",
       "ok": true,
-      "detail": "来源覆盖率 94.1%，17 条数字 / 20 个动作"
+      "detail": "来源覆盖率 94.1%，17 条数字 / 23 个动作"
     }
   ],
   "scorecard": {
     "n_claims": 17,
     "source_coverage": 0.9412,
-    "n_actions": 20,
-    "human_interventions": 6,
-    "destructive_actions": 6,
+    "n_actions": 23,
+    "human_interventions": 7,
+    "destructive_actions": 7,
     "destructive_without_backup": 0,
-    "judge_calls": 6
+    "judge_calls": 7
   }
 }

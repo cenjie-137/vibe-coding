@@ -1,4 +1,4 @@
-# AUTONOMY_POLICY — 全自动分割 Agent 规则契约（v1.6）
+# AUTONOMY_POLICY — 全自动分割 Agent 规则契约（v1.7）
 
 > **本文件是人机之间的唯一接口。** 人写规则，Agent 遵守。
 > **Agent 不得修改本文件及其配套的 `autorun/policy.json`、`autorun/judge.py`、`autorun/redlines.py`、`autorun/ledger.py`、`ROUTE_POOL.yaml`（红线 R7）。**
@@ -16,9 +16,13 @@
 
 | 档位 | 含义 | 数量 | 是否进判定 |
 |------|------|------|-----------|
-| `active` | 已就绪：协议已核实 + 保底线已实测 + 有官方评估脚本 | 2（GLaS、DRIVE） | ✅ 进 `policy.json` 的 targets |
-| `preparing` | 基线已实测，但缺官方评估脚本（R5 挡着） | 1（PUMA） | ❌ 补脚本后转 active |
+| `active` | 已就绪：协议已核实 + 保底线已实测 + 有官方评估脚本 | 3（GLaS、DRIVE、PUMA） | ✅ 进 `policy.json` 的 targets |
+| `preparing` | 基线已实测，但缺官方评估脚本（R5 挡着） | 0 | ❌ 补脚本后转 active |
 | `planned` | 已列入，协议与基线待 Step 0 核实 | 12 | ❌ |
+
+> **PUMA 于 v1.7 转 active**（2026-10-08）：官方 micro Dice 脚本 `eval_puma_official.py` 就位并进
+> R5 allowlist。这次扩展**只改了 `datasets.yaml` 的 1 条记录 + 重编译**，`judge.py` / `redlines.py` /
+> `ledger.py` / `loop.py` 的判定内核零改动 —— 这就是"十几个数据集"扩展方式的第一次实测。
 
 planned 名单（2D）：ISIC2018、KvasirSEG、MoNuSeg、CHASEDB1、BUSI、BEETLE
 planned 名单（3D）：ISLES2022、BraTS2023、LiTS、KiTS2023、ACDC、SynapseBTCV
@@ -30,10 +34,10 @@ planned 名单（3D）：ISLES2022、BraTS2023、LiTS、KiTS2023、ACDC、Synaps
 
 ## 1. 目标（两级，越靠前越好）
 
-| 级别 | 定义 | GLaS | DRIVE |
-|------|------|------|-------|
-| **L1 保底** | 超过自家 nnU-Net v2 官方口径基线 | testB ObjDice > 0.8184；testA ObjDice > 0.8723 | CV Dice > 0.7990 |
-| **L2 冲刺** | 超过已发表 SOTA / 榜前 50% | testB ObjDice > 0.842 | 排行榜前 50% |
+| 级别 | 定义 | GLaS | DRIVE | PUMA |
+|------|------|------|-------|------|
+| **L1 保底** | 超过自家 nnU-Net v2 官方口径基线 | testB ObjDice > 0.8184；testA ObjDice > 0.8723 | CV Dice > 0.7990 | micro Dice > 0.5548 |
+| **L2 冲刺** | 超过已发表 SOTA / 榜前 50% | testB ObjDice > 0.842 | 排行榜前 50% | 待核实（公开值跨 subset，按 R1 不可直接比，见 RESEARCH_LOG §6.15-D） |
 
 - 达到 L1 **不停止**，继续冲 L2。
 - 达到 L2 → 成功终止。
@@ -62,6 +66,9 @@ planned 名单（3D）：ISLES2022、BraTS2023、LiTS、KiTS2023、ACDC、Synaps
 
 - "相对提升" = `(v_new − v_best_prev) / max(v_best_prev, ε)`。
 - 小轮判负不直接弃路线，先回 Step 2 再试；大轮判负才弃路线、回 Step 1 取下一条。
+- **零训练路线（纯后处理 / 超参试算）的每次试算 = 一次小轮**（2026-10-08 裁定，v1.7）：
+  否则判定器只认「训练轮次」，一条纯后处理路线把配置全试完也不会触发换路线。
+  每次试算的结果计入 `state.small_rounds.history`，与「1 折 + 30 epoch」同一语义。
 
 ---
 
@@ -117,7 +124,7 @@ planned 名单（3D）：ISLES2022、BraTS2023、LiTS、KiTS2023、ACDC、Synaps
 
 ---
 
-**版本**：v1.6
+**版本**：v1.7
 **配套文件**：
 - `autorun/datasets.yaml` —— 数据集目录（15 个，可扩展）
 - `autorun/policy.json` —— 机器可读契约（判定器唯一数据源）

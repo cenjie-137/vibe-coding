@@ -24,11 +24,13 @@
 #   没有来源就先留 null —— 宁可空着，不许编。
 
 meta:
-  version: "1.2"
+  version: "1.3"
   updated: "2026-10-08"
   note: >
     首批 15 个数据集。前 3 个（GLaS / DRIVE / PUMA）是本项目已有数据、已就绪；
     其余 12 个是待启动的扩展位，协议与基线数字需 Step 0 逐一核实后才升级为 active。
+    v1.3（2026-10-08）：PUMA 由 preparing 转 active —— 官方评估脚本 eval_puma_official.py
+    就位并进 R5 allowlist；这也是"加一行即可扩展"的第一次实测（不改任何代码）。
 
 # ── 口径注册表（红线 R1 的受控词表）────────────────────────────────
 # 参与比较的数字必须同 metric + subset + convention；跨口径一律不可比。
@@ -93,20 +95,24 @@ datasets:
     note: 榜前 50% 门槛需先确认榜单总条目数，故 L2 暂空（LLM 轨道目前 rank 86）
 
   - task: PUMA
-    status: preparing
+    status: active
     dim: 2D
     modality: histology_H&E
     classes: 6
     metric: micro_dice
     subset: val
     convention: official_micro_dice
-    eval_script: null          # 官方评估器待补 → R5 会挡住它的评估记录进判定
+    eval_script: eval_puma_official.py   # 官方 micro Dice 协议脚本（进 R5 allowlist）
     l1: 0.5548
     l1_source: RESEARCH_LOG.md#puma
     l2: null
     l2_source: null
     verified: true
-    note: 基线已实测 0.5548（nnU-Net v2，官方 micro Dice）；补上官方评估脚本并进 allowlist 后即可转 active
+    note: >
+      基线已实测 0.5548（nnU-Net v2，官方 micro Dice，来源 RESEARCH_LOG §3.2）。
+      【2026-10-08 转 active】官方评估脚本 eval_puma_official.py 就位（4/4 自检通过）并进
+      R5 allowlist；L2 暂空 —— 公开报告值多在挑战赛最终测试集上（不同 subset），
+      按红线 R1 不可与我们的 val(5 折 CV) 直接比，需先核实同 subset 的可比值。
 
   # ══ 扩展位（planned）—— 协议与基线待 Step 0 核实 ════════════════
   - task: ISIC2018

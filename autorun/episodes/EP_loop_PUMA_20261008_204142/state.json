@@ -1,0 +1,31 @@
+{
+  "task": "PUMA",
+  "policy_version": "1.7",
+  "phase": "improve",
+  "current_route": "P01_FoundationUNI",
+  "route_index": 0,
+  "route_total": 2,
+  "small_rounds": {
+    "count": 0,
+    "history": []
+  },
+  "big_rounds": {
+    "count": 0,
+    "history": []
+  },
+  "best": {
+    "metric": "micro_dice",
+    "value": 0.0,
+    "source": "ours",
+    "note": "起跑态：PUMA 尚未通过本治理管线跑出任何数字。路线池 P01 已报告 5-fold TTA micro Dice 0.6762（RESEARCH_LOG §3.2，属本项目自研方法），但按纪律 best 只记「经本管线跑出并留痕」的结果 —— 首次服务器回填 autorun/results/P01_FoundationUNI.json 后由 loop 自动写入。"
+  },
+  "anchor": null,
+  "baseline_ref": {
+    "nnunet": 0.5548,
+    "sota": null
+  },
+  "routes_failed": [],
+  "stop_reason": null,
+  "note": "Phase 3 起跑态：验证 datasets.yaml「加一行即可扩展」在第二个数据集上成立。PUMA 数据/权重均在服务器，本地无素材 → runner 一律走 needs_remote 派发单。",
+  "updated_at": "2026-10-08T20:40:01+08:00"
+}

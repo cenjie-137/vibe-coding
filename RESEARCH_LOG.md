@@ -610,6 +610,65 @@ R1 比较组排除 `role` 以 `anchor_calibration` 开头的数字。详见 §6.
 
 ---
 
+### 6.15 Phase 3：第二个数据集转 active —— 验证「加一行即可扩展」（PUMA，2026-10-08）
+
+**目的**：§6.14 打通了「一条命令跑完一整轮」，但只在**一个**数据集（GLaS）上成立。
+Phase 3 要回答的是框架的**可扩展性**问题：把第二个数据集接进判定，到底要改多少代码？
+目标数据集选 **PUMA**（而非 DRIVE）—— 理由：PUMA 已有官方 micro Dice 口径、已有实测基线
+（0.5548）与自研最优（0.6762），且是**多类别**任务，能顺带验证判定器在「多类 + 类不平衡」下是否稳。
+
+**A. 结论先行：扩展只动了目录里的 1 条记录，代码零改动**
+`datasets.yaml` 把 PUMA 的 `status: preparing → active`、补 `eval_script: eval_puma_official.py`
+（外加 `meta.version` 1.2→1.3），然后 `build_policy.py --write`。结果：
+`policy.json` 的 `targets` 由 `[GLaS, DRIVE]` 变为 `[GLaS, DRIVE, PUMA]`，`eval.allowlist` 由
+`[eval_glas_official.py]` 变为 `[eval_glas_official.py, eval_puma_official.py]`，版本 1.6→1.7。
+**`judge.py` / `redlines.py` / `ledger.py` / `loop.py` 的核心判定逻辑一行没改。**
+
+**B. 新增 / 改造的组件（都是"外围"，不碰判定内核）**
+
+| 组件 | 性质 | 作用 |
+|---|---|---|
+| `eval_puma_official.py` | 新增 | PUMA 官方 micro Dice 协议脚本（进 R5 allowlist） |
+| `ROUTE_POOL_PUMA.yaml` | 新增 | PUMA 专属路线池 —— **不改受保护的 `ROUTE_POOL.yaml`**（红线 R7） |
+| `autorun/state_PUMA.json` | 新增 | PUMA 起跑态（`loop._default_state("PUMA")` 自动识别） |
+| `runner.py` 的 `TASKS` 注册表 | 改造 | 按 task 收拢「评估脚本 / GT 目录 / 本地处理器 / 指标默认值 / 路线池」 |
+| `loop.py` 的 `_default_state` | 改造 | 有 `state_<task>.json` 就用它，否则回落 `state.json`（GLaS 行为逐字节不变） |
+
+**C. 官方 micro Dice 口径（逐字来源）**
+官方定义：把所有图**沿一个轴拼成一张大图**（数据集级池化），在拼接图上**逐类**算 Dice，再对
+5 个前景类取均值（"This is referred to as the micro Dice"）；**某类两边都空时记 1.0**。
+来源：La Barbera et al., PUMA 数据集/基线论文
+https://pmc.ncbi.nlm.nih.gov/articles/PMC11837757/
+自检 4/4 通过（部分重叠 / 全对 / 整张漏检=0.6 / 全空=1.0）。
+
+**D. 一个刻意的边界：PUMA 的 L2 保持 `null`**
+公开报告值多跑在**挑战赛最终测试集**上（与我们的 val / 5 折 CV 不同 subset）。按红线 R1，
+**跨 subset 不可比** —— 故宁可 L2 空着，也不编一个"榜前 50%"的数字。判定器对 `l2=null` 的处理：
+跳过达标判定，继续推进（不崩、不误判达标）。
+
+**E. 验证（第二个数据集的完整一轮）**
+`python autorun/loop.py --task PUMA` →
+判定 `continue/IN_PROGRESS` → `runner` 判 `needs_remote`（PUMA 数据/权重都在服务器）
+→ 产出派发单 `autorun/handoff/P01_FoundationUNI.json`（**要结果、不编数字**：要求服务器回填
+`autorun/results/P01_FoundationUNI.json`，且**缺 `source_url` 一律拒收**，红线 R2）→ 停。
+证据包 `autorun/episodes/EP_loop_PUMA_20261008_204142/`：**1/1 条决策一致、`replayable=true`**，
+决策链哈希 `sha256:d16d5727ed87dc72849b3c48f6385369`。
+**激活前** `loop.py --task PUMA --dry-run` 返回 `stop/UNKNOWN_TASK`（判定器拒绝判未编译进 policy 的任务）
+→ **激活后** 返回 `continue/IN_PROGRESS` —— 这条前后对比正是"目录登记是人闸"的直接证据。
+
+**F. 回归（未破坏治理层）**：`redlines.py --audit` **17 项 0 违规**；`acceptance.py` **8/8**
+（judge 11/11、ledger 10/10、redlines 29/29、replay 7/7）；来源覆盖率 **94.1%**（17 条数字 / 21 个动作）。
+策略编译备份：`autorun/backups/policy_20261008_204115.json`。
+
+**G. 规则文件同步（红线 R7，人工授权后执行）**：`policy.json` 编译到 **v1.7** 后，
+`AUTONOMY_POLICY.md` 正文同步升至 **v1.7**（头部 + 文末两处版本号），并补：
+① §0 表格 `active` 2→3（GLaS、DRIVE、PUMA）、`preparing` 1→0；② §1 目标表新增 PUMA 列
+（L1 = micro Dice > 0.5548，L2 待核实）；③ §2 补「零训练路线的每次试算 = 一次小轮」（§8.2 遗留项）。
+R7 要求规则文件由人改：本次经人工明确授权后由 Agent 代改并留痕（`run_log` 的 build-policy 记录
+`actor: human` 代表人工授权）。
+
+---
+
 ## 7. 复现清单（Reproducibility）
 
 ### 7.1 全局固定项
@@ -673,7 +732,8 @@ python tune_glas.py --data_dir .../data/glas --weights_dir .../output_glas_cnndc
 - [x] **裁定 A2｜红线 R1 增加「校准类豁免」**（policy v1.6，2026-10-08，§6.12）：`redlines.py` 排除 `role` 以 `anchor_calibration` 开头的数字，并补 2 条自检用例。验证：`redlines.py --audit` **15 项 0 违规**、`acceptance.py` **8/8**（均恢复全绿）。
 - [x] **Step 2（GLaS 一轮走通，零训练）**（§6.13）：锚点 R05 复现 0.8428（`state.anchor`，R10 不进 best）→ 改进 R04（自家 nnU-Net + 后处理，扫描 10 个配置：**判定指标 testB ObjDice 全程 0.8184、零提升**，ObjF1 仅 +0.11）→ `judge.py --log` 判 `switch/SMALL_ROUND_NO_GAIN` → 换路线至 R06，`route_index` 1→2。留痕：`run_log.jsonl` +5 条、证据包 `EP03_GLaS_cycle`、重放 **2/2 一致**（hash `sha256:3d32443c…`）；回归 `redlines` **16/0**、`acceptance` **8/8**、来源覆盖率 **94.1%**。手工步骤已固化为 `autorun/step2_cycle.py`。
 - [x] **Phase 2｜一条命令跑完一整轮**（§6.14，2026-10-08）：`step2_cycle.py` 扩成 `runner.py`（执行器：本地后处理真跑、指标只走 R5 官方脚本；训练类路线产 `handoff` 派发单、不伪造数字）+ `loop.py`（编排器：state→判定→执行→回填→判定→换路线；幂等 + 按位置切片证据包 + 沙箱可跑）。修掉 R04 配置轮转索引 bug。验证：沙箱彩排 **6/6** 决策一致、真账本 **1/1** 一致，均 `replayable=true`；回归 `redlines` **16/0**、`acceptance` **8/8**、来源覆盖率 **94.1%**。
-- [ ] **（待人工，不阻塞）** 把「零训练路线的每次试算 = 一次小轮」写进 `AUTONOMY_POLICY.md` 第 2 节正文（受保护文件，需人工改，v1.6→v1.7）。
+- [x] **（已完成，v1.7）** 「零训练路线的每次试算 = 一次小轮」已写进 `AUTONOMY_POLICY.md` 第 2 节正文（见下方 v1.7 同步项）。
 - [ ] **（待办）** 沙箱隔离补全：`runner` 的 `handoff/`、`results/` 用固定路径，沙箱运行会写到真实目录 —— 判定与账本不受影响，但建议后续把这两个目录也纳入 `loop.py` 的可覆盖参数。
-- [ ] 补 PUMA / DRIVE 官方评估脚本并进 `eval.allowlist`，把二者转为可判定的 `active`。
-- [ ] 扩展到第 2 个数据集（DRIVE 或 PUMA），验证 `datasets.yaml` 的"加一行即可扩展"确实成立。
+- [x] **Phase 3｜第二个数据集转 active：PUMA**（§6.15，2026-10-08）：新增 `eval_puma_official.py`（官方 micro Dice，自检 4/4）、`ROUTE_POOL_PUMA.yaml`、`state_PUMA.json`；`runner`/`loop` 改造为 task 感知（GLaS 行为逐字节不变）。目录只加/改 1 条 → `policy.json` v1.6→1.7，`targets` +PUMA、allowlist +`eval_puma_official.py`，**判定内核零改动**。验证：PUMA 完整一轮 `continue/IN_PROGRESS` → 派发 `handoff/P01_FoundationUNI.json`，证据包 `EP_loop_PUMA_20261008_204142` **1/1 一致、`replayable=true`**；回归 `redlines` **17/0**、`acceptance` **8/8**、来源覆盖率 **94.1%**。**「加一行即可扩展」成立。**
+- [ ] 补 **DRIVE** 官方评估脚本并进 `eval.allowlist`，把 DRIVE 从「nnU-Net 内置评估」转为可判定的官方口径 `active`（PUMA 已完成）。
+- [x] **（已完成，v1.7）** `AUTONOMY_POLICY.md` 已同步到 **v1.7**：① §0 表格 `active` 2→3 / `preparing` 1→0；② §1 目标表新增 PUMA 列（L1 = micro Dice > 0.5548）；③ §2 补「零训练试算 = 小轮」；④ 头部 + 文末版本号 v1.6→v1.7。与 `policy.json` v1.7 一致（红线 R7，经人工授权代改）。

@@ -1,0 +1,71 @@
+# ROUTE_POOL_PUMA — PUMA 候选路线池
+#
+# 为什么单独一个文件：受保护文件 ROUTE_POOL.yaml（红线 R7 保护清单内）只承载 GLaS 的池；
+# 新增数据集自己的池放这里，**不改动受保护文件**。runner.load_routes("PUMA") 读本文件。
+#
+# ⚠ 状态：**Step 0（公开方法调研 + 公开代码可用性核实）对 PUMA 尚未开展**。
+#   因此本池当前只列「本项目自有、且已有实测数字」的路线，作为可跑通编排的起点；
+#   公开 SOTA 路线的核实（论文链接 / 是否有官方代码 / 报告口径）是下一步待办。
+#   按 ROUTE_POOL.yaml 的纪律：无代码核实前不得标 confidence: high、不得作锚点。
+#
+# 字段含义与 ROUTE_POOL.yaml 一致：
+#   code_verified  链接是否亲自核实（含训练/推理代码）
+#   reproduced     是否已复现成功（指标落在报告值合理区间）
+#   reported       报告指标（必须带口径，红线 R1）
+#   confidence     high（有代码，可作锚点）/ low（无代码或口径不对口，不作锚点）
+#   status         pending / reproducing / anchor / improving / failed
+
+task: PUMA
+metric: micro_dice
+convention: official_micro_dice     # 官方 micro Dice：数据集级拼接样本上逐类 Dice，再对 5 个前景类取均值
+baseline_ref:
+  nnunet_baseline: 0.5548           # 本项目 nnU-Net v2 官方 micro Dice 实测（= L1 线），来源 RESEARCH_LOG.md#puma
+  published_sota: null              # 未定：公开报告值多在「挑战赛最终测试集」上（不同 subset），
+                                    # 按红线 R1 不可与我们的 val(5 折 CV) 直接比 —— 需先核实同 subset 的可比值
+source_note: >
+  micro Dice 定义来源：La Barbera et al., PUMA 数据集/基线论文
+  https://pmc.ncbi.nlm.nih.gov/articles/PMC11837757/
+  （原文："a Dice score was calculated per class on a concatenated sample ...
+   This is referred to as the micro Dice."）
+  评估实现：本项目 eval_puma_official.py（R5 allowlist）。
+
+routes:
+
+  # ── 第 1 顺位：本项目当前最优（已有实测数字）────────────────────
+  - id: P01_FoundationUNI
+    method: "FoundationUNet + UNI(ViT-L/16) 病理基础模型编码器（本项目）"
+    paper: "—"
+    code: "<本项目自有>"
+    code_verified: true
+    reproduced: true
+    reported: { val_micro_dice: 0.6762, note: "5-fold TTA 均值，fold5 最优 0.7716" }
+    reported_convention: official_micro_dice
+    confidence: high
+    status: improving
+    note: >
+      本项目已完成的 PUMA 最优方案（RESEARCH_LOG.md §3.2）：UNI 病理预训练编码器 +
+      Focal(per-class 反频率 α) + 类权重 Dice（不加 Lovász）+ HED 染色增强 +
+      warmup10/cosine + 5 折按原发/转移分层 CV。
+      实测 5-fold TTA micro Dice 0.6762（超 nnU-Net 基线 +12%）。
+      本地无 PUMA 数据/权重（都在服务器）→ 该路线为「需服务器」，runner 产派发单。
+
+  # ── 第 2 顺位：L1 参考线（本项目 nnU-Net v2 基线）────────────────
+  - id: P02_NNUNetBaseline
+    method: "本项目 nnU-Net v2 默认配置基线（L1 参考）"
+    paper: "—"
+    code: "<本项目自有>"
+    code_verified: true
+    reproduced: true
+    reported: { val_micro_dice: 0.5548 }
+    reported_convention: official_micro_dice
+    confidence: high
+    status: pending
+    note: >
+      本项目 nnU-Net v2 官方 micro Dice 实测 0.5548（= datasets.yaml 的 PUMA.l1），
+      来源 RESEARCH_LOG.md#puma。作为 L1 参考线存在；本地无数据 → 需服务器。
+
+# ── 待办（下一步，Step 0）────────────────────────────────────────
+#   1. 调研 PUMA 挑战赛公开方法，核实「有官方代码」的路线（红线 R4），补进本池。
+#   2. 核实一条**同 subset（val / 5 折 CV）可比**的 SOTA 值，才能定 L2（否则 L2 保持 null）。
+#   3. 把本池纳入红线 R4 审计范围（当前 redlines.audit 只审计受保护的 ROUTE_POOL.yaml；
+#      扩审计需改 redlines.py —— 受保护文件，人工操作）。
