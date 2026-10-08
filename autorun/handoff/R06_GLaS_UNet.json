@@ -1,0 +1,21 @@
+{
+  "route": "R06_GLaS_UNet",
+  "method": "GLaS 二值 U-Net 基线 (twpkevin06222)",
+  "code": "https://github.com/twpkevin06222/Gland-Segmentation",
+  "paper": "—",
+  "generated_at": "2026-10-08T20:24:33+08:00",
+  "task": "GLaS",
+  "why_remote": "训练类路线需 GPU + 数据集，本地不可执行（本地只跑后处理/评估类路线）。",
+  "expected_result_file": "autorun/results/R06_GLaS_UNet.json",
+  "expected_schema": {
+    "route": "R06_GLaS_UNet",
+    "metric": "testB_objDice",
+    "value": "<float>",
+    "subset": "testB",
+    "convention": "official_object_level",
+    "source_url": "<必须：结果由 eval_glas_official.py 产出，填脚本+命令或日志链接>",
+    "evidence": "<权重目录 / 推理输出目录 / 训练日志>"
+  },
+  "how_to_resume": "服务器产出上述结果文件后，重跑 `python autorun/loop.py --task GLaS`，loop 会自动读取并回填，无需人工改 state。",
+  "note": "本文件是**派发单**，不是结果。runner 不会替服务器编一个数字。"
+}

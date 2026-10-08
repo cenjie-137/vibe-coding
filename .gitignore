@@ -44,8 +44,12 @@ _unode_dl/upload_repo/
 
 # ===== 推理预测产物（可由权重+脚本重生成）=====
 glas_test_pred/
+glas_test_pred_pp/
 glas_unode_pred/
 glas_unode_pred_label/
+
+# ===== 治理层沙箱（loop.py 端到端彩排的临时账本，不入库）=====
+autorun/_sandbox/
 
 # ===== 临时输出 =====
 _t_out.txt

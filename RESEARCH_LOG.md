@@ -496,6 +496,120 @@ R1 比较组排除 `role` 以 `anchor_calibration` 开头的数字。详见 §6.
 
 ---
 
+### 6.13 Step 2：GLaS 走通一轮「复现 → 改进 → 判定 → 换路线」（2026-10-08）
+<a id="glas-r04-pp"></a>
+
+**目的**：Step 2 的纪律是先**手工走通一轮**，暴露数据格式 / 口径 / 回填格式的实际问题，
+再把手工步骤固化成脚本。本轮全程**零训练**（按要求「先不训练」），因此走的是一条
+**零成本改进路线 R04**（自家 nnU-Net + 后处理）。
+
+**A. 锚点（已完成）**：R05 U-Node 复现 testB ObjDice **0.8428**（论文 0.842），写 `state.anchor`，
+按红线 R10 **不计入 best**（§6.11）。
+
+**B. 改进 R04｜自家 nnU-Net 5 折 ensemble + 后处理扫描**（`tune_glas_pp.py`；**选配置用 testA、报告用 testB**，testB 留作 held-out）
+
+| 后处理配置 | testA ObjDice | testB ObjDice | testB ObjF1 |
+|---|---|---|---|
+| raw（自家 nnU-Net 基线） | 0.8723 | **0.8184** | 0.6113 |
+| 开运算 m30 k3 ×1 | 0.8732 | 0.8185 | 0.6973 |
+| 开运算 m30 k3 ×2 | 0.8737 | 0.8183 | 0.7137 |
+| **开运算 m30 k3 ×3**（按 testA 选中） | **0.8738** | **0.8184** | **0.7222** |
+| 闭运算 k3 ×1 | 0.8710 | 0.8142 | 0.6569 |
+| 闭运算 k3 ×2 / k5 ×1 | 0.8593 | 0.8078 | 0.6818 |
+| 开×3 + 闭 | 0.8723 | 0.8172 | 0.7200 |
+| 开×1 + 闭 | 0.8710 | 0.8172 | 0.7309 |
+| 分水岭 fd0.3 m30 | 0.8339 | 0.7249 | 0.5630 |
+| 选择性分水岭 s0.85 fd0.4 | 0.8730 | 0.7634 | 0.6741 |
+
+**结论（本节最重要的一条）**：R04 把 **ObjF1 抬了 +0.11**（0.6113 → 0.7222），
+但**判定指标 testB ObjDice 全程 0.8184，零提升**。根因：GLaS 对象级的真瓶颈是
+**实例分离**（粘连腺体要切开），后处理（开/闭运算）只能修碎片、改不动分离；
+**分水岭能切但过分割**，反而把 ObjDice 打到 0.72～0.76。
+⇒ **「指标涨了」必须看清是哪个指标**：ObjF1 涨 ≠ 判定指标涨 —— 这正是红线 R1（口径锁定）要防的事。
+
+**C. 判定**（`judge.py --log`，确定性、强制带 `state_snapshot`）
+- `switch` / `SMALL_ROUND_NO_GAIN`：*「小轮连续 10 轮相对提升 < 0.003」*
+- 换路线后再判 → `continue` / `L1_REACHED_KEEP_PUSHING`：*「best=0.8184 已达 L1，继续冲 L2」*
+
+**D. 换路线**：`R04_NNUNetImproved` 记入 `routes_failed`（对判定指标零提升），
+`route_index` 1→2，`current_route → R06_GLaS_UNet`，小轮/大轮计数归零。
+
+**E. 本轮暴露的两个实际问题（Step 2 的价值所在）**
+1. **零训练路线无法被判定器换掉**。`judge.py` 只认「小轮/大轮连续无提升 → 换路线」，
+   而项目定义「小轮 = 1 折 + 30 epoch」；R04 是纯后处理、不产生训练轮次，
+   按字面口径判定器**会永远停在一条已耗尽的路线**上。
+   **人工裁定（2026-10-08）**：**零训练路线的每次「试算」计为一次小轮** —— 它同样是
+   「低成本试错」，成本比 1 折 30 epoch 还低，属同一语义。落地：`state.small_rounds`
+   记 10 次试算，判定器据此触发 `SMALL_ROUND_NO_GAIN`。
+   （**待办**：把这条口径写进 `AUTONOMY_POLICY.md` 第 2 节正文，需人工改受保护文件。）
+2. **证据包切片不能按 `run_id` 过滤**。首次生成 `EP03` 时按 `run_id ∈ 本轮动作` 过滤，
+   结果 `judge` 决策记录（`run_id=judge-<时间戳>`）被漏掉，证据包里 **0 条决策**、
+   重放直接判 `replayable=false`。改成**按位置切片**（本轮首条动作 → 文件末尾）后修复。
+   ⇒ 教训：账本只追加，切证据包要按**位置**，不要按内容过滤。
+
+**F. 留痕与验证**
+- 账本：`autorun/run_log.jsonl` 追加 5 条（推进 R04 / 改进结果 / judge 决策 / 换路线 / judge 决策）；
+  `claims.jsonl` 追加 1 条（R04 后 testB ObjF1 = **0.7222**，**非判定指标**，仅记改进幅度）。
+- 证据包：`autorun/episodes/EP03_GLaS_cycle/`（`policy_snapshot.json` + `run_log.jsonl` +
+  `state.json` + `replay_report.json`）。
+- 重放：**2/2 条决策一致、0 不一致、`replayable=true`**，决策链哈希
+  `sha256:3d32443ca0afe2f6f40ede561162ca0c`。
+- 回归：`redlines.py --audit` **16 项 0 违规**；`acceptance.py` **8/8**；
+  可信记分卡来源覆盖率 **94.1%**（17 条数字 / 17 个动作）。
+- 固化：本轮手工步骤已固化为 `autorun/step2_cycle.py`（幂等：`run_id` 命中即跳过），
+  它是 Phase 2 `runner.py` / `loop.py` 的种子。
+
+---
+
+### 6.14 Phase 2：把手工业流程固化成「一条命令跑完一整轮」（runner.py + loop.py，2026-10-08）
+
+**目的**：§6.13 把 Step 2 的手工步骤固化成了 `step2_cycle.py`（一次性脚本）。Phase 2 再进一步：
+把它拆成**职责分明、可长期运行**的两件套，使「给一条命令、跑完一整轮」成立。
+
+**A. 三件套的职责边界（钉死不混）**
+
+| 组件 | 职责 | 不做什么 |
+|---|---|---|
+| `judge.py` | 判定（纯函数：读 policy + state） | 不碰文件 |
+| `runner.py` | 执行（产数 / 派发） | 不判定、不改 state |
+| `loop.py` | 编排（推进 state、写留痕、切证据包、按决策走） | 不自己算指标 |
+
+**B. `runner.py`｜两种执行环境**（本项目的现实约束：训练在服务器、后处理在本地）
+- **本地可跑**（后处理 / 评估类）→ 真跑，产出真实指标。指标一律用 `subprocess` 调 **R5 allowlist 里的 `eval_glas_official.py`** 并解析其 stdout，**runner 自己不算任何指标**。
+- **需服务器**（训练类）→ **不伪造数字**，产出一份 `autorun/handoff/<route>.json` 派发单（要什么 / 结果写成什么格式 / 怎么续跑），等服务器回填 `autorun/results/<route>.json`。
+- 服务器回填结果**缺 `source_url` 一律拒收**（红线 R2）——宁可不认，不认脏数。
+
+**C. `loop.py`｜一条命令跑完一整轮**
+`python autorun/loop.py --task GLaS` = 读 state → judge 判定 → runner 执行 → 回填 state → 再判定 → 按决策走
+（`continue` 继续 / `switch` 换路线 / `stop` 终止；`needs_remote` 则派发并停）。
+- **幂等**：`--run-id` 命中账本即整段跳过（账本只追加、不改写）。
+- **按位置切片**：证据包从「本轮首条记录」切到文件末尾（**不按 `run_id` 过滤** —— §6.13 踩过这个坑）。
+- **沙箱可跑**：`--state` / `--run-log` / `--episode` 可覆盖，验证时不动真账本；`--dry-run` 只看计划。
+
+**D. 开发中修掉的一个真 bug**：R04 的后处理配置轮转原先用 `small_rounds.count` 当索引，
+而 `count = len(history)-1`（`history[0]` 是基线起点），导致**第一个配置被重复试一次**。
+改用 `len(history)` 后，配置严格按 `raw → x1 → x2 → x3 …` 依次各跑一次。
+
+**E. 验证**
+1. **沙箱彩排**（不动真账本）：起跑态置 R04 跑 `loop.py` 全流程 → 配置轮转
+   `config[0]=raw → [1]=open m30 k3 x1 → [2]=x2 → [3]=x3`（**无重复**，验证 D 的修复）；
+   判定 `switch/SMALL_ROUND_NO_GAIN`（小轮连续 3 轮无提升，阈值 = `policy.thresholds.small.max_no_gain_rounds = 3`）
+   → 换路线至 `R06_GLaS_UNet` → `runner` 判 `needs_remote` → 产出派发单并停。
+   证据包 `autorun/_sandbox/EP_loop_sandbox/`：**6/6 条决策一致、0 不一致、`replayable=true`**。
+2. **真账本跑一次**：`python autorun/loop.py --task GLaS`（state 停在 R06）→
+   `continue/L1_REACHED_KEEP_PUSHING` → 派发 R06 → 停。
+   证据包 `autorun/episodes/EP_loop_GLaS_20261008_202433/`：**1/1 条决策一致、`replayable=true`**，
+   决策链哈希 `sha256:acaf62af5a2078075e6555c5b7a1a351`。
+
+**F. 回归（未破坏治理层）**：`redlines.py --audit` **16 项 0 违规**；`acceptance.py` **8/8**
+（judge 11/11、ledger 10/10、redlines 29/29、replay 7/7）；来源覆盖率 **94.1%**（17 条数字 / 17 个动作）。
+
+**G. 澄清一处「看起来像 bug」的现象**：沙箱 3 轮就换路线，而真账本 §6.13 那轮却是 10 轮 —— 不是 bug。
+真账本那轮由**一次性脚本** `step2_cycle.py` 一次跑完 10 个配置后才判一次；
+`loop.py` 是**每跑一轮就判一次**，故按 policy 阈值 3 触发换路线。两者都符合各自设计。
+
+---
+
 ## 7. 复现清单（Reproducibility）
 
 ### 7.1 全局固定项
@@ -557,6 +671,9 @@ python tune_glas.py --data_dir .../data/glas --weights_dir .../output_glas_cnndc
 - [x] **Step 1（阶段 1）：数据 / 评估脚本就位 + 复现 U-Node**（§6.11）：本地 `eval_glas_official.py` 自检 testB 0.8184；服务器跑通 U-Node 官方权重推理，官方口径复现 testB ObjDice **0.8428**（论文 0.842）→ 锚点成立，写入 `state.anchor`（**不进 best**，红线 R10）；并顺带量化出 ≈0.02 的「实例标签 vs 二值重标注」口径差。
 - [x] **裁定 A1｜GLaS 评估口径 = 实例标签提交形态**（policy v1.6，2026-10-08，§6.12）：`eval_glas_official.py` 支持 `--pred_kind label`，`convention=official_object_level`，L2 维持 0.842。依据：≈0.02 的差全部来自「是否做实例分离」；nnU-Net 二值连通域即其实例形态，L1=0.8184 不受影响。验证：本仓库脚本 0.8440 vs U-Node 官方口径 0.8428，差 0.0012 → 互认。
 - [x] **裁定 A2｜红线 R1 增加「校准类豁免」**（policy v1.6，2026-10-08，§6.12）：`redlines.py` 排除 `role` 以 `anchor_calibration` 开头的数字，并补 2 条自检用例。验证：`redlines.py --audit` **15 项 0 违规**、`acceptance.py` **8/8**（均恢复全绿）。
-- [ ] **Step 2（已解除阻塞，先不训练）**：用 GLaS 真跑一遍完整循环 —— 复现 R05 U-Node（已完成）→ 在锚点上改进（优先 R04 后处理，零成本）→ `judge.py --log` 判定 → 按决策换路线。**目标：把"一轮 prompt 跑完"的标准化流程跑通并固化。**
+- [x] **Step 2（GLaS 一轮走通，零训练）**（§6.13）：锚点 R05 复现 0.8428（`state.anchor`，R10 不进 best）→ 改进 R04（自家 nnU-Net + 后处理，扫描 10 个配置：**判定指标 testB ObjDice 全程 0.8184、零提升**，ObjF1 仅 +0.11）→ `judge.py --log` 判 `switch/SMALL_ROUND_NO_GAIN` → 换路线至 R06，`route_index` 1→2。留痕：`run_log.jsonl` +5 条、证据包 `EP03_GLaS_cycle`、重放 **2/2 一致**（hash `sha256:3d32443c…`）；回归 `redlines` **16/0**、`acceptance` **8/8**、来源覆盖率 **94.1%**。手工步骤已固化为 `autorun/step2_cycle.py`。
+- [x] **Phase 2｜一条命令跑完一整轮**（§6.14，2026-10-08）：`step2_cycle.py` 扩成 `runner.py`（执行器：本地后处理真跑、指标只走 R5 官方脚本；训练类路线产 `handoff` 派发单、不伪造数字）+ `loop.py`（编排器：state→判定→执行→回填→判定→换路线；幂等 + 按位置切片证据包 + 沙箱可跑）。修掉 R04 配置轮转索引 bug。验证：沙箱彩排 **6/6** 决策一致、真账本 **1/1** 一致，均 `replayable=true`；回归 `redlines` **16/0**、`acceptance` **8/8**、来源覆盖率 **94.1%**。
+- [ ] **（待人工，不阻塞）** 把「零训练路线的每次试算 = 一次小轮」写进 `AUTONOMY_POLICY.md` 第 2 节正文（受保护文件，需人工改，v1.6→v1.7）。
+- [ ] **（待办）** 沙箱隔离补全：`runner` 的 `handoff/`、`results/` 用固定路径，沙箱运行会写到真实目录 —— 判定与账本不受影响，但建议后续把这两个目录也纳入 `loop.py` 的可覆盖参数。
 - [ ] 补 PUMA / DRIVE 官方评估脚本并进 `eval.allowlist`，把二者转为可判定的 `active`。
 - [ ] 扩展到第 2 个数据集（DRIVE 或 PUMA），验证 `datasets.yaml` 的"加一行即可扩展"确实成立。

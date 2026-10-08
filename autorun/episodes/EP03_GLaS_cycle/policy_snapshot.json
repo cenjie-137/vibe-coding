@@ -1,0 +1,318 @@
+{
+  "version": "1.6",
+  "_comment": "机器可读契约 —— judge.py / redlines.py / ledger.py 的唯一数据源。数值必须与 AUTONOMY_POLICY.md 一致。改动只能由人执行，改完版本号 +1 并 git commit（红线 R7）。",
+  "targets": {
+    "GLaS": {
+      "metric": "testB_objDice",
+      "subset": "testB",
+      "convention": "official_object_level",
+      "eval_script": "eval_glas_official.py",
+      "l1": 0.8184,
+      "l2": 0.842,
+      "l1_note": "起点数据集；框架验证用。L2 = U-Node (Pinckaers & Litjens, 2019) testB ObjDice 0.842， 来源 arXiv:1910.10470 Table 1（官方对象级口径）。 选它的理由：**该路线有可复现的开源代码**（ROUTE_POOL R05），能当复现锚点。 原 L2 = MILD-Net 0.836 于 2026-10-08 上移 —— MILD-Net 无官方代码，做不了锚点。 【2026-10-08 口径裁定，policy v1.6】convention 采用**实例标签提交形态** （评估脚本 --pred_kind label）。依据：GLaS 官方提交本就是实例标签图；同一批 U-Node 预测 label 0.8440 vs binary 0.8215，≈0.02 的差全部来自「是否做实例分离」。 nnU-Net 的二值连通域即其实例形态，故 L1=0.8184 在两种形态下同值、不受影响； L2=0.842 是文献实例口径，二者可比（同 convention）。\n ｜ 来源：RESEARCH_LOG.md#nnunet-glas",
+      "l2_note": "起点数据集；框架验证用。L2 = U-Node (Pinckaers & Litjens, 2019) testB ObjDice 0.842， 来源 arXiv:1910.10470 Table 1（官方对象级口径）。 选它的理由：**该路线有可复现的开源代码**（ROUTE_POOL R05），能当复现锚点。 原 L2 = MILD-Net 0.836 于 2026-10-08 上移 —— MILD-Net 无官方代码，做不了锚点。 【2026-10-08 口径裁定，policy v1.6】convention 采用**实例标签提交形态** （评估脚本 --pred_kind label）。依据：GLaS 官方提交本就是实例标签图；同一批 U-Node 预测 label 0.8440 vs binary 0.8215，≈0.02 的差全部来自「是否做实例分离」。 nnU-Net 的二值连通域即其实例形态，故 L1=0.8184 在两种形态下同值、不受影响； L2=0.842 是文献实例口径，二者可比（同 convention）。\n ｜ 来源：https://arxiv.org/abs/1910.10470"
+    },
+    "DRIVE": {
+      "metric": "cv_dice",
+      "subset": "cv5",
+      "convention": "pixel_level",
+      "eval_script": null,
+      "l1": 0.799,
+      "l2": null,
+      "l1_note": "榜前 50% 门槛需先确认榜单总条目数，故 L2 暂空（LLM 轨道目前 rank 86） ｜ 来源：RESEARCH_LOG.md#nnunet-drive",
+      "l2_note": "未核实 / 未定义"
+    }
+  },
+  "_targets_note": "每新增一个数据集，就在 targets 里加一个同名键。这就是「十几个数据集」的扩展方式 —— 不需要改任何代码。",
+  "thresholds": {
+    "small": {
+      "folds": 1,
+      "epochs": 30,
+      "rel_gain": 0.003,
+      "max_no_gain_rounds": 3
+    },
+    "big": {
+      "folds": 5,
+      "rel_gain": 0.005,
+      "max_no_gain_rounds": 2
+    }
+  },
+  "limits": {
+    "max_retries": 3,
+    "max_consecutive_route_failures": 3,
+    "max_routes": 10,
+    "gpu_hour_cap": null
+  },
+  "best_policy": {
+    "reproduce_counts_as_best": false,
+    "best_source_required": "ours",
+    "anchor_field": "anchor",
+    "note": "红线 R10：锚点路线复现所得分数只作口径校验（写 state.anchor），不得计入 state.best；best 只记我们自研/改进模型的结果。理由：复现的是别人的方法，记成自身成绩等于拿他人论文数字冒充达标。"
+  },
+  "eval": {
+    "convention_lock": true,
+    "allowlist": [
+      "eval_glas_official.py"
+    ],
+    "_note": "R5 评估锁定：只有白名单里的官方协议脚本算出的数字才能进入判定。新数据集核实官方协议后把脚本名加进来。"
+  },
+  "ledger": {
+    "run_log": "autorun/run_log.jsonl",
+    "claims": "autorun/claims.jsonl"
+  },
+  "protected_files": [
+    "AUTONOMY_POLICY.md",
+    "autorun/policy.json",
+    "autorun/judge.py",
+    "autorun/redlines.py",
+    "autorun/ledger.py",
+    "ROUTE_POOL.yaml"
+  ],
+  "redlines": {
+    "R1": {
+      "title": "口径锁定",
+      "check": "redlines.check_r1",
+      "scope": "comparison",
+      "desc": "参与比较的数字必须同 指标+子集+口径"
+    },
+    "R2": {
+      "title": "来源强制",
+      "check": "redlines.check_r2",
+      "scope": "claim",
+      "desc": "无来源的数字标 UNVERIFIED，不得参与判定"
+    },
+    "R3": {
+      "title": "阈值单一数据源",
+      "check": "redlines.check_r3",
+      "scope": "policy+judge",
+      "desc": "停止阈值只能来自 policy.json，不许硬编码"
+    },
+    "R4": {
+      "title": "复现准入",
+      "check": "redlines.check_r4",
+      "scope": "route",
+      "desc": "代码链接须核实（code_verified）才可标 high；无代码须标 low 且不做锚点；未复现不得进 improving/anchor"
+    },
+    "R5": {
+      "title": "评估锁定",
+      "check": "redlines.check_r5",
+      "scope": "eval_record",
+      "desc": "只用官方协议脚本评估"
+    },
+    "R6": {
+      "title": "破坏性操作须备份",
+      "check": "redlines.check_r6",
+      "scope": "action",
+      "desc": "删除/覆盖前必须备份并留痕"
+    },
+    "R7": {
+      "title": "自我修改禁止",
+      "check": "redlines.check_r7",
+      "scope": "changed_files",
+      "desc": "不得改动 protected_files 里的文件"
+    },
+    "R8": {
+      "title": "留痕强制",
+      "check": "redlines.check_r8",
+      "scope": "run_log",
+      "desc": "每个动作写 run_log.jsonl；每个结论写 RESEARCH_LOG.md"
+    },
+    "R9": {
+      "title": "资源边界",
+      "check": "redlines.check_r9",
+      "scope": "state",
+      "desc": "路线数 / 连续失败不得越界"
+    },
+    "R10": {
+      "title": "锚点隔离",
+      "check": "redlines.check_r10",
+      "scope": "state",
+      "desc": "复现所得分数只作口径校验（state.anchor）；state.best.source 必须为 ours，禁止把他人成绩计入自身 best"
+    }
+  },
+  "catalog": {
+    "GLaS": {
+      "status": "active",
+      "dim": "2D",
+      "modality": "histology_H&E",
+      "classes": 2,
+      "metric": "testB_objDice",
+      "subset": "testB",
+      "convention": "official_object_level",
+      "eval_script": "eval_glas_official.py",
+      "verified": true,
+      "note": "起点数据集；框架验证用。L2 = U-Node (Pinckaers & Litjens, 2019) testB ObjDice 0.842， 来源 arXiv:1910.10470 Table 1（官方对象级口径）。 选它的理由：**该路线有可复现的开源代码**（ROUTE_POOL R05），能当复现锚点。 原 L2 = MILD-Net 0.836 于 2026-10-08 上移 —— MILD-Net 无官方代码，做不了锚点。 【2026-10-08 口径裁定，policy v1.6】convention 采用**实例标签提交形态** （评估脚本 --pred_kind label）。依据：GLaS 官方提交本就是实例标签图；同一批 U-Node 预测 label 0.8440 vs binary 0.8215，≈0.02 的差全部来自「是否做实例分离」。 nnU-Net 的二值连通域即其实例形态，故 L1=0.8184 在两种形态下同值、不受影响； L2=0.842 是文献实例口径，二者可比（同 convention）。\n"
+    },
+    "DRIVE": {
+      "status": "active",
+      "dim": "2D",
+      "modality": "retinal_fundus",
+      "classes": 2,
+      "metric": "cv_dice",
+      "subset": "cv5",
+      "convention": "pixel_level",
+      "eval_script": null,
+      "verified": true,
+      "note": "榜前 50% 门槛需先确认榜单总条目数，故 L2 暂空（LLM 轨道目前 rank 86）"
+    },
+    "PUMA": {
+      "status": "preparing",
+      "dim": "2D",
+      "modality": "histology_H&E",
+      "classes": 6,
+      "metric": "micro_dice",
+      "subset": "val",
+      "convention": "official_micro_dice",
+      "eval_script": null,
+      "verified": true,
+      "note": "基线已实测 0.5548（nnU-Net v2，官方 micro Dice）；补上官方评估脚本并进 allowlist 后即可转 active"
+    },
+    "ISIC2018": {
+      "status": "planned",
+      "dim": "2D",
+      "modality": "dermoscopy",
+      "classes": 2,
+      "metric": null,
+      "subset": null,
+      "convention": null,
+      "eval_script": null,
+      "verified": false,
+      "note": "皮肤病变分割；官方 Jaccard 口径待核实"
+    },
+    "KvasirSEG": {
+      "status": "planned",
+      "dim": "2D",
+      "modality": "endoscopy",
+      "classes": 2,
+      "metric": null,
+      "subset": null,
+      "convention": null,
+      "eval_script": null,
+      "verified": false,
+      "note": "肠息肉分割；Dice 口径待核实"
+    },
+    "MoNuSeg": {
+      "status": "planned",
+      "dim": "2D",
+      "modality": "histology_H&E",
+      "classes": 2,
+      "metric": null,
+      "subset": null,
+      "convention": null,
+      "eval_script": null,
+      "verified": false,
+      "note": "细胞核分割；像素级 vs 实例级口径差异大，必须核实（R1）"
+    },
+    "CHASEDB1": {
+      "status": "planned",
+      "dim": "2D",
+      "modality": "retinal_fundus",
+      "classes": 2,
+      "metric": null,
+      "subset": null,
+      "convention": null,
+      "eval_script": null,
+      "verified": false,
+      "note": "视网膜血管分割；与 DRIVE 同模态，可做跨数据集泛化证据"
+    },
+    "BUSI": {
+      "status": "planned",
+      "dim": "2D",
+      "modality": "ultrasound",
+      "classes": 3,
+      "metric": null,
+      "subset": null,
+      "convention": null,
+      "eval_script": null,
+      "verified": false,
+      "note": "乳腺超声；小样本，适合做算力节俭的证据"
+    },
+    "BEETLE": {
+      "status": "planned",
+      "dim": "2D",
+      "modality": "histology_H&E_WSI",
+      "classes": 4,
+      "metric": null,
+      "subset": null,
+      "convention": null,
+      "eval_script": null,
+      "verified": false,
+      "note": "乳腺组织 4 类，全切片；数据准备中。已知对照 baseline 0.87（来源 RESEARCH_LOG.md，待核实口径）"
+    },
+    "ISLES2022": {
+      "status": "planned",
+      "dim": "3D",
+      "modality": "brain_MRI",
+      "classes": 3,
+      "metric": null,
+      "subset": null,
+      "convention": null,
+      "eval_script": null,
+      "verified": false,
+      "note": "缺血性卒中病灶；本人有参赛经验，3D 扩展首选"
+    },
+    "BraTS2023": {
+      "status": "planned",
+      "dim": "3D",
+      "modality": "brain_MRI",
+      "classes": 4,
+      "metric": null,
+      "subset": null,
+      "convention": null,
+      "eval_script": null,
+      "verified": false,
+      "note": "脑肿瘤多区域；本人做过 MOME，直接可复用"
+    },
+    "LiTS": {
+      "status": "planned",
+      "dim": "3D",
+      "modality": "abdominal_CT",
+      "classes": 3,
+      "metric": null,
+      "subset": null,
+      "convention": null,
+      "eval_script": null,
+      "verified": false,
+      "note": "肝脏 + 肝肿瘤；3D 大器官，验证管线在体数据上的表现"
+    },
+    "KiTS2023": {
+      "status": "planned",
+      "dim": "3D",
+      "modality": "abdominal_CT",
+      "classes": 4,
+      "metric": null,
+      "subset": null,
+      "convention": null,
+      "eval_script": null,
+      "verified": false,
+      "note": "肾脏 + 肿瘤 + 囊肿"
+    },
+    "ACDC": {
+      "status": "planned",
+      "dim": "3D",
+      "modality": "cardiac_MRI",
+      "classes": 4,
+      "metric": null,
+      "subset": null,
+      "convention": null,
+      "eval_script": null,
+      "verified": false,
+      "note": "心脏结构分割；小器官 + 运动伪影，难度补充"
+    },
+    "SynapseBTCV": {
+      "status": "planned",
+      "dim": "3D",
+      "modality": "abdominal_CT",
+      "classes": 14,
+      "metric": null,
+      "subset": null,
+      "convention": null,
+      "eval_script": null,
+      "verified": false,
+      "note": "腹部多器官；类别数最多，验证框架在长尾类别上的稳定性"
+    }
+  },
+  "_catalog_note": "全部数据集清单（含 planned），由 datasets.yaml 编译而来；判定器只读 targets，不读 catalog。",
+  "_compiled_from": "autorun/datasets.yaml",
+  "_compiled_at": "2026-10-08T19:37:21+08:00"
+}

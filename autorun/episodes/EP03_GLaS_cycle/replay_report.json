@@ -1,0 +1,13 @@
+{
+  "trace": "autorun/episodes/EP03_GLaS_cycle/run_log.jsonl",
+  "policy_version": "1.6",
+  "policy_source": "snapshot",
+  "policy_path": "autorun/episodes/EP03_GLaS_cycle/policy_snapshot.json",
+  "n_decisions": 2,
+  "n_replayed": 2,
+  "n_matched": 2,
+  "n_mismatched": 0,
+  "replayable": true,
+  "chain_hash": "sha256:3d32443ca0afe2f6f40ede561162ca0c",
+  "mismatches": []
+}
