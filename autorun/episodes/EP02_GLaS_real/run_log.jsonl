@@ -1,0 +1,1 @@
+{"ts": "2026-10-08T16:12:00+08:00", "run_id": "EP02-open", "task": "GLaS", "phase": "reproduce", "action": "episode EP02_GLaS_real 起跑：从 R05_UNODE 复现 U-Node（口径校验锚点）；判定规则钉死为本目录 policy_snapshot.json (v1.5)", "actor": "human"}

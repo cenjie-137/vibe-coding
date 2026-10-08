@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GLaS 腺体分割 · 多基线对比（组会版）</title>
+<style>
+  :root{
+    --ink:#1a2332; --ink2:#4a5568; --ink3:#8794a8; --line:#e2e8f0;
+    --bg:#f7f9fc; --card:#ffffff;
+    --ours:#0f9d6e;        /* 我们（nnU-Net agent） */
+    --llm:#2b6cb0;         /* LLM 轨道 */
+    --pub:#8899ad;         /* 已发表基线 */
+    --warn:#c2410c;        /* 口径警示 */
+    --warnbg:#fff7ed; --warnline:#fdba74;
+    --okbg:#ecfdf5; --okline:#6ee7b7;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;
+    line-height:1.65; -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:1080px; margin:0 auto; padding:40px 28px 72px;}
+  header{border-bottom:3px solid var(--ink); padding-bottom:18px; margin-bottom:30px;}
+  h1{font-size:26px; margin:0 0 8px; letter-spacing:-.3px;}
+  .sub{color:var(--ink2); font-size:14px;}
+  .sub b{color:var(--ink);}
+  h2{font-size:19px; margin:42px 0 14px; padding-left:12px; border-left:5px solid var(--ours);}
+  h3{font-size:15px; margin:24px 0 10px; color:var(--ink2);}
+  p{font-size:14.5px; margin:10px 0;}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:20px 22px; margin:16px 0;}
+  .verdict{border-left:6px solid var(--ours); background:var(--okbg); border-color:var(--okline);}
+  .verdict .big{font-size:17px; font-weight:700; margin:0 0 8px;}
+  .warnbox{border-left:6px solid var(--warn); background:var(--warnbg); border-color:var(--warnline);}
+  .warnbox .big{font-size:16px; font-weight:700; color:var(--warn); margin:0 0 8px;}
+  table{width:100%; border-collapse:collapse; font-size:13.5px; margin:10px 0;}
+  th,td{padding:9px 10px; text-align:left; border-bottom:1px solid var(--line); vertical-align:top;}
+  th{background:#eef2f7; font-weight:600; color:var(--ink2); font-size:12.5px; letter-spacing:.2px;}
+  td.num{font-variant-numeric:tabular-nums; text-align:right; font-weight:600;}
+  tr.ours{background:#eefaf4;}
+  tr.ours td{font-weight:600;}
+  tr.llm{background:#eff6fd;}
+  .tag{display:inline-block; font-size:11px; padding:1px 7px; border-radius:20px; font-weight:600; white-space:nowrap;}
+  .tag.pub{background:#eef2f7; color:#5a6b80;}
+  .tag.ours{background:#d8f3e6; color:#0b7a55;}
+  .tag.llm{background:#dbeafe; color:#1d4ed8;}
+  .tag.warn{background:#ffe8d6; color:var(--warn);}
+  .best{color:var(--ours); font-weight:800;}
+  .weak{color:#c02c2c; font-weight:700;}
+  .muted{color:var(--ink3); font-size:12.5px;}
+  .src{font-size:11.5px; color:var(--ink3);}
+
+  /* ---- bar chart ---- */
+  .chart{margin:6px 0 4px;}
+  .row{display:grid; grid-template-columns:200px 1fr; align-items:center; gap:12px; margin:7px 0;}
+  .rlabel{font-size:12.5px; color:var(--ink2); text-align:right; line-height:1.3;}
+  .rlabel b{color:var(--ink); display:block; font-size:12.5px;}
+  .bars{position:relative; height:34px;}
+  .track{position:absolute; inset:0; border-radius:5px; background:#f0f3f8;}
+  .bar{position:absolute; left:0; height:14px; border-radius:4px; top:2px; transition:width .3s;}
+  .bar.f1{top:18px; height:14px;}
+  .bar.od{background:#2b6cb0;}
+  .bar.f1b{background:#f0a04b;}
+  .bar.odl{background:#5b8dd6;}
+  .bar.odn{background:#0f9d6e;}
+  .bar.f1n{background:#f0a04b;}
+  .bar span{position:absolute; right:-52px; top:50%; transform:translateY(-50%); font-size:11.5px; font-weight:700; color:var(--ink); font-variant-numeric:tabular-nums;}
+  .legend{display:flex; gap:20px; flex-wrap:wrap; font-size:12px; color:var(--ink2); margin:14px 0 2px;}
+  .legend i{display:inline-block; width:12px; height:12px; border-radius:3px; margin-right:6px; vertical-align:-1px;}
+  .axis{display:grid; grid-template-columns:200px 1fr; gap:12px; font-size:11px; color:var(--ink3); margin-top:6px;}
+  .axis .ticks{display:flex; justify-content:space-between; border-top:1px dashed var(--line); padding-top:4px;}
+
+  /* ---- convention mini chart ---- */
+  .conv{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
+  .conv .mini{border:1px solid var(--line); border-radius:8px; padding:12px 14px; background:#fbfcfe;}
+  .conv .mini h4{margin:0 0 10px; font-size:13px;}
+  .cbar{display:grid; grid-template-columns:96px 1fr; gap:10px; align-items:center; margin:6px 0; font-size:12px;}
+  .cbar .ct{position:relative; height:18px; background:#f0f3f8; border-radius:4px;}
+  .cbar .cf{position:absolute; left:0; top:0; height:18px; border-radius:4px;}
+
+  ol,ul{font-size:14.5px; margin:8px 0 8px 4px; padding-left:22px;}
+  li{margin:7px 0;}
+  .kpi{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin:16px 0;}
+  .kpi .k{background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 16px;}
+  .kpi .k .v{font-size:24px; font-weight:800; letter-spacing:-.5px;}
+  .kpi .k .l{font-size:12px; color:var(--ink3); margin-top:2px;}
+  footer{margin-top:46px; padding-top:18px; border-top:1px solid var(--line); font-size:12px; color:var(--ink3);}
+  @media print{ body{background:#fff;} .wrap{padding:0;} .card{break-inside:avoid;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>GLaS 结肠腺体分割 · 多基线对比</h1>
+  <div class="sub">
+    任务：对象级腺体分割（H&amp;E，165 张：85 train / 60 testA / 20 testB）&nbsp;·&nbsp;
+    官方指标：<b>Object F1</b>（检测）&nbsp;·&nbsp;<b>Object Dice</b>（分割）&nbsp;·&nbsp;<b>Object Hausdorff</b>（形状）<br>
+    对比对象：已发表方法（U-Net / CUMedVision / DCAN / MILD-Net）+ <b>我们的两条轨道</b>（LLM 自主 · nnU-Net 基线 agent）&nbsp;·&nbsp;数据截止 2026-09-29
+  </div>
+</header>
+
+<!-- ============ 1. 结论先行 ============ -->
+<div class="card verdict">
+  <p class="big">① 关于 "U-Net 基线 0.768"：这是一个口径错配的伪基线</p>
+  <p style="margin-bottom:6px">在公开文献里，"0.768" 对应的是 U-Net 在 GLaS 上的两个值，<b>都不是 testB 对象级 Dice</b>：</p>
+  <ul style="margin-top:4px">
+    <li><b>U-Net 像素级 IoU = 76.81%</b>（HEA-Net 综述表）/ <b>76.84%</b>（TAC-UNet）—— 这是<b>像素级语义分割</b>的 IoU，不是对象级 Dice，也不是 testB。对应像素 Dice ≈ 86.3%。</li>
+    <li><b>U-Net 对象级 F1（testA）= 0.766</b>（J Integr Bioinform 2025，作者自行训练 U-Net）—— 是 <b>F1</b> 不是 Dice，且是 <b>testA</b> 不是 testB。</li>
+  </ul>
+  <p style="margin-bottom:0">→ 之前 LLM 轨道把其中一个值写成 "U-Net 基线 0.768" 画在 <b>testB 对象级 Dice</b> 图上，属于<b>指标类型 + 子集双重错配</b>。用它判断"是否超过基线"不成立。<b>这正是本研究要暴露的 vibe coding 痛点之一：LLM 会把不同口径的数字当成可比基线。</b></p>
+</div>
+
+<div class="card">
+  <p class="big" style="font-size:17px;font-weight:700;margin:0 0 8px">② 公平比较下的真实位置（官方对象级口径）</p>
+  <p style="margin:0">把口径统一到 GLaS 官方协议后，<b>nnU-Net 基线 agent</b> 的结果是：testA <b>ObjDice 0.872 / F1 0.774</b>，testB <b>ObjDice 0.818 / F1 0.611</b>。落在已发表方法的正常区间内，<b>testB ObjDice 甚至高于挑战赛冠军 DCAN(0.781)</b>；但 <b>testB ObjF1 明显偏低</b>，原因是 nnU-Net 默认<b>不做实例分离</b>，粘连腺体被并成单个连通域（→ 后处理可白涨 +0.12，见第 4 节）。</p>
+</div>
+
+<!-- ============ 2. 主对比表 ============ -->
+<h2>2 · 主对比表（官方对象级协议，口径一致）</h2>
+<p class="muted">下表所有数值均来自 GLaS 官方对象级评估协议（最大重叠 1:1 对应、面积加权 + 数据集级池化）。<span class="tag pub">已发表</span> 为文献值，<span class="tag ours">我们的基线</span> 为本项目 nnU-Net v2 默认配置、5 折 ensemble 实测。</p>
+
+<h3>testA（n = 60，良性为主）</h3>
+<table>
+  <thead>
+    <tr><th style="width:30%">方法</th><th>类型</th><th style="text-align:right">Object F1 ↑</th><th style="text-align:right">Object Dice ↑</th><th style="text-align:right">Object HD ↓</th><th style="width:16%">来源</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>U-Net (2015)</td><td><span class="tag pub">已发表</span></td><td class="num">0.766</td><td class="num muted">—</td><td class="num">76.51</td><td class="src">JIB 2025</td></tr>
+    <tr><td>CUMedVision1 (2015)</td><td><span class="tag pub">已发表</span></td><td class="num">0.868</td><td class="num">0.867</td><td class="num">74.60</td><td class="src">GLaS'15 / Micro-Net</td></tr>
+    <tr><td>DCAN = CUMedVision2 (2015)</td><td><span class="tag pub">已发表</span></td><td class="num">0.912</td><td class="num best">0.897</td><td class="num best">45.42</td><td class="src">GLaS'15</td></tr>
+    <tr><td>MILD-Net (2019)</td><td><span class="tag pub">已发表</span></td><td class="num best">0.914</td><td class="num best">0.913</td><td class="num best">41.54</td><td class="src">EUSIPCO'22</td></tr>
+    <tr class="ours"><td>nnU-Net v2 基线 agent（我们）</td><td><span class="tag ours">我们的基线</span></td><td class="num">0.774</td><td class="num">0.872</td><td class="num">67.31</td><td class="src">本项目实测</td></tr>
+  </tbody>
+</table>
+
+<h3>testB（n = 20，染色/结构变异更大，公认更难）</h3>
+<table>
+  <thead>
+    <tr><th style="width:30%">方法</th><th>类型</th><th style="text-align:right">Object F1 ↑</th><th style="text-align:right">Object Dice ↑</th><th style="text-align:right">Object HD ↓</th><th style="width:16%">来源</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>CUMedVision1 (2015)</td><td><span class="tag pub">已发表</span></td><td class="num">0.769</td><td class="num">0.800</td><td class="num">153.65</td><td class="src">GLaS'15</td></tr>
+    <tr><td>DCAN = CUMedVision2 (2015)</td><td><span class="tag pub">已发表</span></td><td class="num">0.716</td><td class="num">0.781</td><td class="num">160.35</td><td class="src">GLaS'15</td></tr>
+    <tr><td>MILD-Net (2019)</td><td><span class="tag pub">已发表</span></td><td class="num best">0.844</td><td class="num best">0.836</td><td class="num best">105.89</td><td class="src">EUSIPCO'22</td></tr>
+    <tr class="ours"><td>nnU-Net v2 基线 agent（我们）</td><td><span class="tag ours">我们的基线</span></td><td class="num weak">0.611</td><td class="num">0.818</td><td class="num">118.85</td><td class="src">本项目实测</td></tr>
+  </tbody>
+</table>
+
+<div class="card" style="padding:14px 18px;background:#fbfcfe">
+  <p style="margin:0;font-size:13.5px">
+  <b>读表要点：</b>① testA 上我们的 ObjDice 0.872 已接近 DCAN(0.897)，ObjF1 0.774 略高于 U-Net(0.766)，但与 MILD-Net 仍有差距；
+  ② testB 上我们的 <b>ObjDice 0.818 反超 DCAN(0.781)</b>，但 <b class="weak">ObjF1 0.611 显著偏低</b> —— 这是"像素分割好、实例分离差"的典型特征，也是我们下一步要补的短板；
+  ③ Object HD 偏大（118.85）是<b>假阳性碎片</b>导致，与该协议下已发表方法同量级（DCAN 160.35、CUMedVision1 153.65），非实现错误。</p>
+</div>
+
+<!-- ============ 3. 可视化 ============ -->
+<h2>3 · 可视化对比</h2>
+
+<h3>testA · Object Dice / Object F1</h3>
+<div class="chart">
+  <div class="row"><div class="rlabel"><b>MILD-Net (2019)</b>已发表</div>
+    <div class="bars"><div class="track"></div>
+      <div class="bar od" style="width:91.3%"><span>0.913</span></div>
+      <div class="bar f1b" style="width:91.4%"><span>0.914</span></div></div></div>
+  <div class="row"><div class="rlabel"><b>DCAN (2015)</b>已发表</div>
+    <div class="bars"><div class="track"></div>
+      <div class="bar od" style="width:89.7%"><span>0.897</span></div>
+      <div class="bar f1b" style="width:91.2%"><span>0.912</span></div></div></div>
+  <div class="row"><div class="rlabel"><b>nnU-Net agent（我们）</b>本项目</div>
+    <div class="bars"><div class="track"></div>
+      <div class="bar odn" style="width:87.2%"><span>0.872</span></div>
+      <div class="bar f1n" style="width:77.4%"><span>0.774</span></div></div></div>
+  <div class="row"><div class="rlabel"><b>CUMedVision1 (2015)</b>已发表</div>
+    <div class="bars"><div class="track"></div>
+      <div class="bar od" style="width:86.7%"><span>0.867</span></div>
+      <div class="bar f1b" style="width:86.8%"><span>0.868</span></div></div></div>
+  <div class="row"><div class="rlabel"><b>U-Net (2015)</b>已发表</div>
+    <div class="bars"><div class="track"></div>
+      <div class="bar f1b" style="width:76.6%"><span>0.766 (F1)</span></div></div></div>
+</div>
+<div class="legend">
+  <span><i style="background:#2b6cb0"></i>Object Dice（已发表）</span>
+  <span><i style="background:#f0a04b"></i>Object F1（已发表）</span>
+  <span><i style="background:#0f9d6e"></i>Object Dice（我们）</span>
+  <span><i style="background:#f0a04b"></i>Object F1（我们）</span>
+</div>
+<div class="axis"><div></div><div class="ticks"><span>0</span><span>0.25</span><span>0.5</span><span>0.75</span><span>1.0</span></div></div>
+
+<h3 style="margin-top:26px">testB · Object Dice / Object F1</h3>
+<div class="chart">
+  <div class="row"><div class="rlabel"><b>MILD-Net (2019)</b>已发表</div>
+    <div class="bars"><div class="track"></div>
+      <div class="bar od" style="width:83.6%"><span>0.836</span></div>
+      <div class="bar f1b" style="width:84.4%"><span>0.844</span></div></div></div>
+  <div class="row"><div class="rlabel"><b>nnU-Net agent（我们）</b>本项目</div>
+    <div class="bars"><div class="track"></div>
+      <div class="bar odn" style="width:81.8%"><span>0.818</span></div>
+      <div class="bar f1n" style="width:61.1%"><span>0.611</span></div></div></div>
+  <div class="row"><div class="rlabel"><b>CUMedVision1 (2015)</b>已发表</div>
+    <div class="bars"><div class="track"></div>
+      <div class="bar od" style="width:80.0%"><span>0.800</span></div>
+      <div class="bar f1b" style="width:76.9%"><span>0.769</span></div></div></div>
+  <div class="row"><div class="rlabel"><b>DCAN (2015)</b>已发表</div>
+    <div class="bars"><div class="track"></div>
+      <div class="bar od" style="width:78.1%"><span>0.781</span></div>
+      <div class="bar f1b" style="width:71.6%"><span>0.716</span></div></div></div>
+</div>
+<div class="legend">
+  <span><i style="background:#2b6cb0"></i>Object Dice（已发表）</span>
+  <span><i style="background:#f0a04b"></i>Object F1（已发表）</span>
+  <span><i style="background:#0f9d6e"></i>Object Dice（我们）</span>
+  <span><i style="background:#f0a04b"></i>Object F1（我们）</span>
+</div>
+<div class="axis"><div></div><div class="ticks"><span>0</span><span>0.25</span><span>0.5</span><span>0.75</span><span>1.0</span></div></div>
+
+<div class="card" style="padding:14px 18px;background:#fbfcfe">
+  <p style="margin:0;font-size:13.5px"><b>图读法：</b>testA 我们（绿/橙）紧贴第一梯队；testB 我们的 <b>Dice（绿条 0.818）超过 DCAN</b>，但 <b>F1（橙条 0.611）是全表最低</b> —— 视觉上一眼能看出"分割质量不差、检测/实例分离拖后腿"。这个短板可以通过后处理直接补上（第 4 节）。</p>
+</div>
+
+<!-- ============ 4. 口径警示 ============ -->
+<h2>4 · 关键警示：口径不同，数字不可直接比</h2>
+<div class="card warnbox">
+  <p class="big">⚠ LLM 轨道的 GLaS 数字用的是"逐图简单平均"，与官方"面积加权 + 数据集级池化"差 0.12~0.16</p>
+  <p style="margin-top:6px">用<b>同一份 nnU-Net 预测</b>在两种口径下评估，结果如下 —— 口径本身就能造成巨大差异：</p>
+  <div class="conv">
+    <div class="mini">
+      <h4>testA · 同一预测，两种口径</h4>
+      <div class="cbar"><div>官方口径</div><div class="ct"><div class="cf" style="width:87.2%;background:#0f9d6e"></div></div></div>
+      <div class="cbar"><div class="muted">逐图简单平均</div><div class="ct"><div class="cf" style="width:75.1%;background:#c2410c"></div></div></div>
+      <p class="muted" style="margin:6px 0 0">0.8723 &nbsp;vs&nbsp; 0.7507 &nbsp;→ 差 <b style="color:#c2410c">+0.12</b></p>
+    </div>
+    <div class="mini">
+      <h4>testB · 同一预测，两种口径</h4>
+      <div class="cbar"><div>官方口径</div><div class="ct"><div class="cf" style="width:81.8%;background:#0f9d6e"></div></div></div>
+      <div class="cbar"><div class="muted">逐图简单平均</div><div class="ct"><div class="cf" style="width:65.4%;background:#c2410c"></div></div></div>
+      <p class="muted" style="margin:6px 0 0">0.8184 &nbsp;vs&nbsp; 0.6544 &nbsp;→ 差 <b style="color:#c2410c">+0.16</b></p>
+    </div>
+  </div>
+</div>
+
+<h3>LLM 轨道结果（<span style="color:var(--warn)">逐图简单平均口径 · 仅供内部趋势参考，勿与上表并列</span>）</h3>
+<table>
+  <thead>
+    <tr><th style="width:38%">方法（LLM 自主轨道）</th><th>口径</th><th style="text-align:right">testA ObjDice</th><th style="text-align:right">testB ObjDice</th><th style="text-align:right">testB ObjF1</th></tr>
+  </thead>
+  <tbody>
+    <tr class="llm"><td>GlandUNet/UNI + watershed（v1 拉伸）</td><td><span class="tag warn">逐图平均</span></td><td class="num">0.8198</td><td class="num">0.7513</td><td class="num">0.7622</td></tr>
+    <tr class="llm"><td>GlandUNet/UNI + watershed（letterbox 重训）</td><td><span class="tag warn">逐图平均</span></td><td class="num">0.7939</td><td class="num">0.7258</td><td class="num">0.7752</td></tr>
+  </tbody>
+</table>
+<p class="muted">注：LLM 轨道预测已从服务器清理，无法就地按官方口径重评。因此 <b>LLM 轨道与 nnU-Net 轨道、已发表方法的数字<b>不能直接比大小</b></b>。若要放进同一张表，必须重跑一次 LLM 推理并用 <code>eval_glas_official.py</code> 统一口径 —— 这是目前唯一的口径阻塞项。</p>
+
+<!-- ============ 5. 结论 ============ -->
+<h2>5 · 结论与下一步</h2>
+<div class="kpi">
+  <div class="k"><div class="v" style="color:var(--ours)">0.818</div><div class="l">我们 nnU-Net agent 的 testB ObjDice<br>（已超过挑战赛冠军 DCAN 0.781）</div></div>
+  <div class="k"><div class="v" style="color:#c02c2c">0.611</div><div class="l">testB ObjF1（全表最低）<br>瓶颈 = 实例分离</div></div>
+  <div class="k"><div class="v" style="color:var(--warn)">+0.12</div><div class="l">后处理（3×3 开运算）可白涨的 F1<br>testA 0.774→0.857 / testB 0.611→0.731</div></div>
+</div>
+
+<ol>
+  <li><b>"0.768" 不可信</b>：它是 U-Net 的像素级 IoU(76.81%) 或 testA 对象级 F1(0.766)，被 LLM 当成 testB 对象级 Dice 基线使用 —— <b>这是本研究记录到的 vibe coding 痛点实例（口径混淆 → 错误基线 → 错误结论）</b>。</li>
+  <li><b>没有公开的 nnU-Net GLaS 基线</b>：nnU-Net 原论文未收录 GLaS，文献中也未见常用的 nnU-Net-GLaS 对象级数字。因此<b>我们这次跑的 nnU-Net v2 基线本身就是该任务的 nnU-Net 参照</b>，是一个可写进论文的补充贡献。</li>
+  <li><b>我们的真实水平</b>：testA ObjDice 0.872 / F1 0.774，testB ObjDice 0.818 / F1 0.611 —— 分割质量（Dice）已进入第一梯队，<b>唯一短板是 testB 的实例分离（F1）</b>。</li>
+  <li><b>最高性价比的下一步</b>：给 nnU-Net 推理加"剔除小目标(≥30px) + 2~3 次 3×3 开运算"，ObjF1 可白涨 testA +0.08 / testB +0.12，无需重训。</li>
+  <li><b>口径统一是当务之急</b>：重跑 LLM 轨道推理 → 官方口径重评 → 才能给出"LLM vs nnU-Net vs 已发表方法"的可信三方对比表。</li>
+</ol>
+
+<!-- ============ 6. 讲稿要点 ============ -->
+<h2>6 · 组会讲稿要点（3 分钟版）</h2>
+<div class="card">
+  <ol style="margin:0">
+    <li><b>先破题</b>：之前图上标的 "U-Net 基线 0.768" 经查证是<b>口径错配</b>——公开文献里那个 0.768 是 U-Net 的<b>像素级 IoU</b>（或 testA 的 F1），不是 testB 的对象级 Dice。所以"有没有超过基线"这个结论不成立。<span class="muted">（这本身就是一个很好的 vibe coding 案例：LLM 把不同口径的数字当成了可比基线。）</span></li>
+    <li><b>再给公平对照</b>：统一到 GLaS 官方对象级口径后，把已发表的 U-Net / CUMedVision1 / DCAN / MILD-Net 和我们今天跑的 nnU-Net v2 基线 agent 放在一起——我们的 testA ObjDice 0.872、testB ObjDice 0.818，<b>testB 的 Dice 已经超过挑战赛冠军 DCAN</b>。</li>
+    <li><b>亮短板</b>：但 testB 的 F1 只有 0.611，全表最低——原因是 nnU-Net 默认不做实例分离，粘连腺体被并成一个连通域。<b>这是"分割质量好、检测差"的典型特征</b>，也说明对象级评估的胜负手在实例分离。</li>
+    <li><b>给解法</b>：加一个廉价后处理（剔小目标 + 开运算），F1 可白涨 +0.12，不用重训。这条已经做了消融，数据是现成的。</li>
+    <li><b>收尾</b>：LLM 轨道的数字目前口径不一致，暂不能并入同一张表；下一步重跑 LLM 推理统一口径后，就能给出完整三方对比。</li>
+  </ol>
+</div>
+
+<!-- ============ 7. 数据来源 ============ -->
+<h2>7 · 数据来源与可信度</h2>
+<table>
+  <thead><tr><th style="width:26%">来源</th><th>提供的数值</th><th style="width:14%">可信度</th></tr></thead>
+  <tbody>
+    <tr><td>GLaS Challenge 官方论文<br><span class="src">arXiv:1603.00275（Sirinukunwattana et al. 2016）</span></td><td>挑战赛方法 CUMedVision1/2、ExB 系列的对象级 F1/Dice/HD 与排名</td><td><span class="tag ours">高</span> 官方</td></tr>
+    <tr><td>Micro-Net<br><span class="src">arXiv:1804.08145（Raza et al., MedIA 2019）</span></td><td>CUMedVision1/ExB2 的完整对象级指标复核</td><td><span class="tag ours">高</span> 同行评议</td></tr>
+    <tr><td>EUSIPCO 2022 / Rota-Net / DoubleU-Net<br><span class="src">多篇复现表</span></td><td>CUMedVision2 与 MILD-Net 的 testA/testB 对象级指标（相互一致）</td><td><span class="tag ours">高</span> 多源交叉</td></tr>
+    <tr><td>HEA-Net / TAC-UNet<br><span class="src">MDPI Sensors 2022 / QIMS 2024</span></td><td>U-Net 在 GLaS 的<b>像素级</b> Dice 86.34 / IoU 76.81（"0.768"来源）</td><td><span class="tag ours">高</span> 但口径不同</td></tr>
+    <tr><td>J Integr Bioinform 2025<br><span class="src">PMC12569585</span></td><td>U-Net / DCAN 的<b>对象级</b> F1（作者自行训练）</td><td><span class="tag warn">中</span> 非官方挑战赛成绩</td></tr>
+    <tr><td>本项目 nnU-Net v2 实测<br><span class="src">nnunet_baseline_results.json / eval_glas_official.py</span></td><td>testA 0.8723/0.7739/67.31；testB 0.8184/0.6113/118.85</td><td><span class="tag ours">高</span> 本地可复现</td></tr>
+  </tbody>
+</table>
+<p class="muted">⚠ 说明：GLaS 官方 MATLAB 评估代码需 Warwick 登录（下载失败），本项目对象级三项指标为<b>按官方 Evaluation 页公式的忠实复现</b>，非官方代码输出。已通过"预测与 GT 同尺寸无需转置、testA_1 与自身 GT 匹配度 0.862 高于其他任何 GT、划分与官方 Table 1 一致、测试集像素 Dice 0.9199 vs CV 0.9276 无断裂"四项自检。</p>
+
+<footer>
+  生成于 2026-09-29 · 本项目 GLaS 多基线对比 · 数据源见第 7 节 · 所有<span class="tag ours">本项目实测</span>数值可用 <code>nnunet_baseline_results.json</code> 复核
+</footer>
+
+</div>
+</body>
+</html>

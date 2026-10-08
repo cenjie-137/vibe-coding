@@ -54,6 +54,26 @@ def seg_contour_loss(seg_logit, seg, cont_logit, cont):
     return seg_loss + 0.5 * cont_loss, seg_loss, cont_loss
 
 
+def hov_loss(dist_pred, dist_gt, seg, msge_weight=1.0):
+    """HoVer 距离图回归损失 = 前景 MSE + λ·MSGE（梯度一致性）。
+
+    dist_pred/dist_gt: (B,2,H,W) 全局归一化像素距离；seg: (B,H,W) {0,1}。
+    MSGE 约束预测距离场的空间梯度与 GT 一致（等价于强制单位梯度），
+    使方向场梯度能量在粘连边界处形成一致切割山脊（HoVer-Net 关键项）。
+    """
+    dist_pred = dist_pred.float()
+    dist_gt = dist_gt.float()
+    fg = (seg > 0.5).float().unsqueeze(1)  # (B,1,H,W)
+    n = fg.sum() * 2.0 + 1e-6  # 每个前景像素 2 个通道
+    mse = ((dist_pred - dist_gt) ** 2 * fg).sum() / n
+
+    gy, gx = torch.gradient(dist_pred, dim=(2, 3))
+    tgy, tgx = torch.gradient(dist_gt, dim=(2, 3))
+    ge = (gy - tgy) ** 2 + (gx - tgx) ** 2
+    msge = (ge * fg).sum() / n
+    return mse + msge_weight * msge
+
+
 @torch.no_grad()
 def predict_prob(model, image, device, tta=True):
     model.eval()
@@ -64,8 +84,14 @@ def predict_prob(model, image, device, tta=True):
                      torch.flip(image, dims=[2, 3])]
     seg_sum = None
     cont_sum = None
+    dist_out = None
     for i, x in enumerate(variants):
-        seg_logit, cont_logit = model(x.to(device))
+        out = model(x.to(device))
+        if len(out) == 3:
+            seg_logit, cont_logit, dist_t = out
+        else:
+            seg_logit, cont_logit = out
+            dist_t = None
         seg_p = torch.sigmoid(seg_logit)
         cont_p = torch.sigmoid(cont_logit)
         if i == 1:
@@ -76,21 +102,27 @@ def predict_prob(model, image, device, tta=True):
             seg_p, cont_p = torch.flip(seg_p, [2, 3]), torch.flip(cont_p, [2, 3])
         seg_sum = seg_p if seg_sum is None else seg_sum + seg_p
         cont_sum = cont_p if cont_sum is None else cont_sum + cont_p
+        # 距离图向量翻转会改方向符号，只取原始方向（不做 TTA 平均）
+        if i == 0 and dist_t is not None:
+            dist_out = dist_t[0].cpu().numpy()  # (2,H,W)
     seg_prob = (seg_sum / len(variants))[0, 0].cpu().numpy()
     cont_prob = (cont_sum / len(variants))[0, 0].cpu().numpy()
-    return seg_prob, cont_prob
+    return seg_prob, cont_prob, dist_out
 
 
 def evaluate(model, val_loader, device):
-    from inference_glas import postprocess
+    from inference_glas import postprocess, postprocess_hover
     model.eval()
     pix_dices, obj_dices, obj_f1s = [], [], []
     for batch in val_loader:
         images = batch['image'].to(device)
         segs = batch['seg'].numpy()
         for b in range(images.shape[0]):
-            seg_prob, cont_prob = predict_prob(model, images[b:b + 1], device, tta=True)
-            pred = postprocess(seg_prob, cont_prob, 0.5, 0.5, 10).astype(bool)
+            seg_prob, cont_prob, dist_prob = predict_prob(model, images[b:b + 1], device, tta=True)
+            if dist_prob is not None:
+                pred = postprocess_hover(seg_prob, dist_prob, 0.5, 10).astype(bool)
+            else:
+                pred = postprocess(seg_prob, cont_prob, 0.5, 0.5, 10).astype(bool)
             gt = segs[b] > 0.5
             inter = (pred & gt).sum()
             pix_dices.append(2 * inter / (pred.sum() + gt.sum() + 1e-6))
@@ -144,6 +176,7 @@ def train_fold(args, fold, device):
             images = batch['image'].to(device)
             segs = batch['seg'].to(device)
             contours = batch['contour'].to(device)
+            dists = batch['dist'].to(device)
 
             optimizer.zero_grad()
             with torch.cuda.amp.autocast(enabled=(device == 'cuda')):
@@ -151,11 +184,14 @@ def train_fold(args, fold, device):
                 if args.model == 'cnndcan':
                     seg_logit, cont_logit, aux = out
                     loss, seg_loss, cont_loss = seg_contour_loss(seg_logit, segs, cont_logit, contours)
-                    for a_seg, a_cont in aux:
-                        loss = loss + 0.4 * seg_contour_loss(a_seg, segs, a_cont, contours)[0]
+                    if args.deep_sup:
+                        for a_seg, a_cont in aux:
+                            loss = loss + args.deep_sup_weight * seg_contour_loss(
+                                a_seg, segs, a_cont, contours)[0]
                 else:
-                    seg_logit, cont_logit = out
-                    loss, seg_loss, cont_loss = seg_contour_loss(seg_logit, segs, cont_logit, contours)
+                    seg_logit, cont_logit, dist = out
+                    loss = seg_contour_loss(seg_logit, segs, cont_logit, contours)[0]
+                    loss = loss + args.hov_weight * hov_loss(dist, dists, segs, args.hov_msge_weight)
             scaler.scale(loss).backward()
             scaler.step(optimizer)
             scaler.update()
@@ -207,6 +243,14 @@ def main():
     parser.add_argument('--freeze_encoder', action='store_true')
     parser.add_argument('--model_source', default='UNI')
     parser.add_argument('--model', choices=['cnndcan', 'glas_unet'], default='cnndcan')
+    parser.add_argument('--deep_sup', type=int, default=1, choices=[0, 1],
+                        help='cnndcan 是否启用多级深监督（消融用：0=关）')
+    parser.add_argument('--deep_sup_weight', type=float, default=0.4,
+                        help='深监督辅助损失权重')
+    parser.add_argument('--hov_weight', type=float, default=1.0,
+                        help='HoVer 距离图回归(MSE)损失权重（glas_unet 三头时生效）')
+    parser.add_argument('--hov_msge_weight', type=float, default=1.0,
+                        help='HoVer 梯度一致性(MSGE)损失权重（glas_unet 三头时生效）')
     parser.add_argument('--num_workers', type=int, default=4)
     parser.add_argument('--output_dir', required=True)
     args = parser.parse_args()

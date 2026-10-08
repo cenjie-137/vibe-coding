@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>前沿文献调研 · 自主 Agent / Vibe Coding / 人机协同 / 多模态医学（2025–2026）</title>
+<style>
+  :root{
+    --bg:#f5f7fb; --card:#ffffff; --ink:#16202f; --muted:#5c6b83; --line:#e3e8f0;
+    --accent:#2f5bea; --accent2:#7c3aed; --accent-soft:#eef2ff;
+    --green:#0f9d58; --green-bg:#e7f6ed;
+    --amber:#b7791f; --amber-bg:#fef6e0;
+    --red:#c0392b; --red-bg:#fdecea;
+    --mono:"SFMono-Regular",Consolas,"Liberation Mono",Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"Segoe UI","Microsoft YaHei",system-ui,-apple-system,sans-serif;
+    line-height:1.75; font-size:15.5px;
+  }
+  .wrap{max-width:1120px;margin:0 auto;padding:0 24px 96px}
+
+  /* ---------- header ---------- */
+  header.hero{
+    background:linear-gradient(135deg,#16224a 0%,#2f5bea 55%,#7c3aed 100%);
+    color:#fff;padding:56px 24px 46px;margin-bottom:34px;
+  }
+  header.hero .inner{max-width:1120px;margin:0 auto}
+  .kicker{font-size:12.5px;letter-spacing:.22em;text-transform:uppercase;opacity:.82;font-weight:600}
+  header.hero h1{font-size:31px;line-height:1.32;margin:12px 0 10px;font-weight:750;letter-spacing:-.01em}
+  header.hero p.sub{font-size:15.5px;opacity:.93;margin:0;max-width:820px}
+  .hero-meta{margin-top:22px;display:flex;flex-wrap:wrap;gap:10px}
+  .hero-meta span{
+    background:rgba(255,255,255,.15);border:1px solid rgba(255,255,255,.28);
+    padding:5px 12px;border-radius:999px;font-size:12.5px;backdrop-filter:blur(4px)
+  }
+
+  /* ---------- generic ---------- */
+  h2.part{
+    font-size:22px;margin:52px 0 6px;padding-top:22px;font-weight:730;letter-spacing:-.01em;
+    border-top:3px solid var(--ink);display:flex;align-items:baseline;gap:12px
+  }
+  h2.part .num{
+    font-size:13px;font-weight:700;color:#fff;background:var(--ink);
+    padding:3px 9px;border-radius:6px;letter-spacing:.04em;transform:translateY(-2px)
+  }
+  h3{font-size:17.5px;margin:30px 0 8px;font-weight:700}
+  h4{font-size:15px;margin:20px 0 6px;font-weight:700;color:#243247}
+  p{margin:9px 0}
+  .lead{color:var(--muted);font-size:15px;margin:6px 0 18px}
+  code{font-family:var(--mono);background:#eef1f7;padding:1.5px 6px;border-radius:5px;font-size:13px;color:#2a3550}
+  a{color:var(--accent);text-decoration:none;border-bottom:1px solid #c9d5ff}
+  a:hover{border-bottom-color:var(--accent)}
+  strong{font-weight:700}
+
+  .card{
+    background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:20px 22px;margin:14px 0;box-shadow:0 1px 2px rgba(22,32,47,.04)
+  }
+  .card.paper{border-left:4px solid var(--accent)}
+  .card.paper.alt{border-left-color:var(--accent2)}
+  .card h4{margin-top:0;display:flex;flex-wrap:wrap;align-items:baseline;gap:10px}
+  .card h4 .tag{font-size:11.5px;font-weight:600;color:var(--muted);background:#f1f4f9;padding:2px 9px;border-radius:999px;border:1px solid var(--line)}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:820px){.grid2{grid-template-columns:1fr}}
+
+  /* ---------- verification badges ---------- */
+  .vb{display:inline-flex;align-items:center;gap:5px;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:999px;white-space:nowrap;border:1px solid transparent}
+  .vb.ok{color:var(--green);background:var(--green-bg);border-color:#bfe6cd}
+  .vb.mid{color:var(--amber);background:var(--amber-bg);border-color:#f0dca0}
+  .vb.bad{color:var(--red);background:var(--red-bg);border-color:#f3c4bd}
+  .vb::before{content:"●";font-size:9px}
+
+  .legend{
+    display:flex;flex-wrap:wrap;gap:10px 22px;background:var(--card);border:1px solid var(--line);
+    border-radius:12px;padding:14px 18px;margin:22px 0;font-size:13.5px;color:var(--muted)
+  }
+  .legend b{color:var(--ink)}
+
+  /* ---------- tables ---------- */
+  .tbl-wrap{overflow-x:auto;margin:16px 0;border:1px solid var(--line);border-radius:12px;background:var(--card)}
+  table{border-collapse:collapse;width:100%;font-size:13.6px;min-width:620px}
+  th,td{padding:10px 13px;text-align:left;vertical-align:top;border-bottom:1px solid var(--line)}
+  th{background:#f0f3f9;font-weight:700;font-size:12.6px;color:#2a3550;white-space:nowrap;letter-spacing:.01em}
+  tr:last-child td{border-bottom:none}
+  tbody tr:nth-child(even){background:#fafbfe}
+  td.num{font-family:var(--mono);font-weight:600;white-space:nowrap}
+  .hi{color:var(--accent);font-weight:700}
+
+  /* ---------- callouts ---------- */
+  .note{border-radius:12px;padding:14px 18px;margin:16px 0;font-size:14px;border:1px solid}
+  .note.tip{background:var(--green-bg);border-color:#bfe6cd}
+  .note.warn{background:var(--amber-bg);border-color:#f0dca0}
+  .note.danger{background:var(--red-bg);border-color:#f3c4bd}
+  .note .h{font-weight:750;display:block;margin-bottom:4px}
+  .note.tip .h{color:#0b6b3d}.note.warn .h{color:#8a5a12}.note.danger .h{color:#8f2a1e}
+
+  ul.tight{margin:8px 0;padding-left:22px}
+  ul.tight li{margin:5px 0}
+  .pill{display:inline-block;font-size:11.5px;font-weight:650;padding:2px 9px;border-radius:6px;background:var(--accent-soft);color:#27409e;margin-right:6px}
+  .kv{font-size:13.5px;color:var(--muted)}
+  .kv b{color:var(--ink)}
+  .mono{font-family:var(--mono);font-size:13px}
+  hr.soft{border:none;border-top:1px dashed var(--line);margin:22px 0}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 22px;margin:8px 0 6px}
+  .toc ol{margin:6px 0;padding-left:20px;columns:2;column-gap:32px}
+  @media(max-width:720px){.toc ol{columns:1}}
+  .toc li{margin:4px 0;font-size:14px}
+  .toc a{border-bottom:none}
+  footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);color:var(--muted);font-size:12.8px}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="inner">
+    <div class="kicker">Literature Survey · 2025–2026</div>
+    <h1>前沿文献调研：自主科研 Agent · Vibe Coding · 人机协同 · 多模态医学 Agent</h1>
+    <p class="sub">面向「医学图像分割全自动 Agent」这一研究主线，系统梳理近期（尤其 2026 年）优秀论文的<b>方法</b>、<b>成果</b>与<b>呈现形式</b>，并给出可直接效仿的论文骨架建议。</p>
+    <div class="hero-meta">
+      <span>调研日期 2026-10-08</span>
+      <span>覆盖 40+ 篇文献 / 系统 / 基准</span>
+      <span>所有关键数字标注来源与可信度</span>
+      <span>配套项目：DRIVE / GLaS 自主分割流水线</span>
+    </div>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="legend">
+    <span><span class="vb ok">已核实</span> <b>一手来源</b>：论文页 / 官方博客 / 官方排行榜，数字可直接引用</span>
+    <span><span class="vb mid">需复核</span> <b>二手来源</b>：综述转述、第三方博客，引用前建议回原文</span>
+    <span><span class="vb bad">存疑</span> 未能追溯到可靠来源，<b>禁止写入论文</b></span>
+  </div>
+
+  <div class="toc">
+    <b>目录</b>
+    <ol>
+      <li><a href="#tldr">执行摘要（6 条核心结论）</a></li>
+      <li><a href="#p1">自主科研 Agent 与评测基准</a></li>
+      <li><a href="#p2">Vibe Coding / 人机协同 / 自主性分级</a></li>
+      <li><a href="#p3">多模态医学 Agent 与基础模型</a></li>
+      <li><a href="#p4">长时任务可靠性：漂移 · 早停 · 可复现</a></li>
+      <li><a href="#p5">横向对比：优秀论文「用什么形式展现」</a></li>
+      <li><a href="#p6">对我们的借鉴：可效仿的论文骨架</a></li>
+      <li><a href="#p7">存疑与待核实清单</a></li>
+      <li><a href="#src">附录：来源清单</a></li>
+    </ol>
+  </div>
+
+  <!-- ================= TL;DR ================= -->
+  <h2 class="part" id="tldr"><span class="num">TL;DR</span>执行摘要</h2>
+  <p class="lead">先给结论。以下 6 条是这次调研中最值得你直接拿来用的判断。</p>
+
+  <div class="card">
+    <ol class="tight">
+      <li><b>你的方向踩在 2026 年最热的主赛道上。</b> Camyla（中科大 / 上海 AI Lab，arXiv:2604.10696）是与你几乎同构的工作：医学图像分割、零人工干预、以 nnU-Net 为对照基线。它是你必须重点对标的「最近邻」文献。<span class="vb ok">已核实</span></li>
+      <li><b>「规模 + 零干预 + 官方口径对照 nnU-Net」是当前顶会认可的故事线。</b> Camyla 用 31 个数据集、两轮独立运行、28 天 8 卡集群，在 24/31 上超过含 nnU-Net 的最强单数据集基线，并让人工评审把生成稿件打在 T1/T2 期刊分界线上。<span class="vb ok">已核实</span></li>
+      <li><b>长时 Agent 的三个公认失效模式已被明确命名</b>：搜索漂移（search drift）、知识退化（knowledge degradation）、失败后陷入增量修补（incremental-fix trap）。Camyla 用 QWBE / LRM / DDF 三个机制一一对应——这正是你 <code>AUTONOMY_POLICY.md</code> 想解决的问题的「论文版表述」。<span class="vb ok">已核实</span></li>
+      <li><b>「停止/换路线」不该是拍脑袋阈值，而要可复现、可审计。</b> 学界共识是把终止准则做成确定性判据 + 过程奖励/验证器（VPRM、SEVA、语义早停、recall-controlled cascade）。你已有的 <code>judge.py</code> 确定性判定器方向完全正确。<span class="vb mid">需复核</span></li>
+      <li><b>呈现形式上，「人类盲评 + AI 评审」双通道、逐数据集 delta 图、组件消融、失败案例研究、统计显著性检验、成本/预算敏感度、跨运行方差——是当前优秀论文的标配七件套。</b> 单靠一张主表很难过审。<span class="vb ok">已核实</span></li>
+      <li><b>务必避开两个坑</b>：一是把二手数字（如 METR「慢 19%」、Devin「14%」）当一手引用；二是把不同 SWE-bench 版本/不同评测口径的数字并列比较——这正是你项目里已经踩过的「口径」问题。<span class="vb mid">需复核</span></li>
+    </ol>
+  </div>
+
+  <!-- ================= PART 1 ================= -->
+  <h2 class="part" id="p1"><span class="num">01</span>自主科研 Agent 与评测基准</h2>
+  <p class="lead">这一支的共性是：从「生成想法 → 写代码 → 跑实验 → 写论文」端到端闭环，用多 Agent 协作 + 树搜索 + 反馈回路驱动。</p>
+
+  <div class="card paper">
+    <h4>The AI Scientist-v2 <span class="tag">Sakana AI · UBC · Vector · Oxford</span> <span class="vb ok">已核实</span></h4>
+    <p class="kv"><b>方法</b>：去模板化（no human-coded templates）；核心是 <b>agentic tree search</b>（实验管理器 Agent 驱动）+ <b>VLM 反馈回路</b>迭代优化论文图表；覆盖假设生成、文献阅读、实验设计、代码实现、数据分析、LaTeX 成稿。</p>
+    <p class="kv"><b>成果</b>：向 ICLR 2025 workshop 提交 3 篇全 AI 生成论文，其中 <b>1 篇通过同行评审</b>——被官方称为「首个通过同行评审的全 AI 生成论文」；据 Nature 报道该工作于 2026 年 3 月正式发表在 <i>Nature</i>。</p>
+    <p class="kv"><b>呈现形式</b>：人类盲审结果 + 自研 Automated Reviewer（OpenReview 平衡准确率约 69%）+ 幻觉/重复图/错误引用等局限分析。</p>
+    <p class="kv"><b>链接</b>：<a href="https://arxiv.org/html/2504.08066v1">arXiv:2504.08066</a> · <a href="https://sakana.ai/ai-scientist-nature/">Sakana 官方页（Nature 发布）</a></p>
+  </div>
+
+  <div class="card paper alt">
+    <h4>Google AI co-scientist <span class="tag">Google DeepMind / Research</span> <span class="vb ok">已核实</span></h4>
+    <p class="kv"><b>方法</b>：基于 Gemini 的<b>多 Agent 系统</b>，通过「生成—辩论—演化」（generate–debate–evolve）循环迭代产出并精炼科学假设。</p>
+    <p class="kv"><b>成果</b>：官方称在抗微生物耐药性、植物免疫、肝纤维化等方向与团队合作加速了研究（未给统一量化指标）。</p>
+    <p class="kv"><b>呈现形式</b>：Nature 论文 + 官方博客 + 向研究者开放的 Hypothesis Generation 工具。</p>
+    <p class="kv"><b>链接</b>：<a href="https://deepmind.google/blog/co-scientist-a-multi-agent-ai-partner-to-accelerate-research/">DeepMind 官方博客</a></p>
+  </div>
+
+  <div class="grid2">
+    <div class="card paper">
+      <h4>Agent Laboratory <span class="vb mid">需复核</span></h4>
+      <p class="kv"><b>方法</b>：三阶段框架（文献综述 → 实验 → 报告撰写），支持<b>自主模式</b>与 <b>co-pilot 模式</b>；协调 PhD / Postdoc / ML Engineer / Professor 等角色 Agent。</p>
+      <p class="kv"><b>成果</b>：据摘要，o1-preview 驱动时效果最佳；相较此前自主研究方法<b>节省约 84% 研究费用</b>。</p>
+      <p class="kv"><b>呈现</b>：人类研究者评估 + 成本统计。 <a href="https://arxiv.org/abs/2501.04227">arXiv:2501.04227</a></p>
+    </div>
+    <div class="card paper">
+      <h4>AI-Researcher <span class="tag">HKU</span> <span class="vb mid">需复核</span></h4>
+      <p class="kv"><b>方法</b>：覆盖文献综述、假设生成、算法实现、可发表稿件准备的完整流水线；提出 <b>Scientist-Bench</b>（含受指导创新与开放探索两类任务）。</p>
+      <p class="kv"><b>呈现</b>：论文指标 + 以顶会论文为参考标准的基准。 <a href="https://arxiv.org/html/2505.18705v1">arXiv:2505.18705</a></p>
+    </div>
+    <div class="card paper">
+      <h4>InternAgent <span class="tag">InternAI</span> <span class="vb mid">需复核</span></h4>
+      <p class="kv"><b>方法</b>：统一闭环多 Agent 框架，覆盖假设到验证全流程，并提供人类专家反馈接口。</p>
+      <p class="kv"><b>成果</b>：据摘要，在 12 个科学任务上展现泛化性。 <a href="https://arxiv.org/abs/2505.16938">arXiv:2505.16938</a></p>
+    </div>
+    <div class="card paper">
+      <h4>EvoScientist <span class="tag">KDD 2026</span> <span class="vb bad">存疑</span></h4>
+      <p class="kv"><b>方法</b>：多 Agent 端到端科研系统，采用 <b>Idea Tree Search + Experiment Tree Search</b>，含 propose-review-refine、Elo 排名、VLM 反馈。</p>
+      <p class="kv"><b>注意</b>：第三方页面称其 6/6 论文被接收、获 Best Paper，但官方 arXiv 摘要片段未佐证，<b>不要引用该结论</b>。 <a href="https://arxiv.org/abs/2603.08127">arXiv:2603.08127</a></p>
+    </div>
+  </div>
+
+  <h3>评测基准：这一支的「硬通货」</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>基准</th><th>机构</th><th>考什么</th><th>关键数字</th><th>可信度</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>MLE-bench</b><br><span class="kv">arXiv:2410.07095 · ICLR 2025</span></td>
+          <td>OpenAI</td>
+          <td>75 个 Kaggle 竞赛，含人类基线</td>
+          <td class="num">o1-preview + AIDE 在 <span class="hi">16.9%</span> 竞赛达铜牌；多次尝试（pass@8）翻倍</td>
+          <td><span class="vb ok">已核实</span></td>
+        </tr>
+        <tr>
+          <td><b>PaperBench</b><br><span class="kv">arXiv:2504.01848</span></td>
+          <td>OpenAI</td>
+          <td>从零复现 20 篇 ICML 2024 Spotlight/Oral</td>
+          <td class="num">Claude 3.5 Sonnet (New) <span class="hi">21.0%</span>；人类 ML PhD <span class="hi">41.4%</span>；8,316 个子任务</td>
+          <td><span class="vb ok">已核实</span></td>
+        </tr>
+        <tr>
+          <td><b>RE-Bench</b><br><span class="kv">arXiv:2411.15114</span></td>
+          <td>METR</td>
+          <td>前沿 AI 的 R&amp;D 能力 vs 人类专家</td>
+          <td class="num">短预算下 AI 可超人类；长预算下人类反超</td>
+          <td><span class="vb mid">需复核</span></td>
+        </tr>
+        <tr>
+          <td><b>MLGym</b><br><span class="kv">arXiv:2502.14499</span></td>
+          <td>Meta AI</td>
+          <td>13 个开放式 AI 研究任务</td>
+          <td class="num">模型多靠调超参改进基线，<b>未产生新颖假设</b></td>
+          <td><span class="vb ok">已核实</span></td>
+        </tr>
+        <tr>
+          <td><b>ScienceAgentBench</b><br><span class="kv">arXiv:2410.05080</span></td>
+          <td>—</td>
+          <td>44 篇论文提取 102 个数据驱动任务</td>
+          <td class="num">9 位领域专家验证；任务级约 $0.3 / 40 分钟</td>
+          <td><span class="vb mid">需复核</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note tip">
+    <span class="h">对你的启示</span>
+    MLGym 与 PaperBench 共同说明：<b>当前 Agent 在「复现 + 工程调优」上进步明显，但在「产生真正新颖的假设」上仍不稳定</b>。你的论文定位应落在「可靠地复现并稳定超越强基线」，而不是空谈「自主创新」——这与 Camyla 的叙事一致。
+  </div>
+
+  <!-- ================= PART 2 ================= -->
+  <h2 class="part" id="p2"><span class="num">02</span>Vibe Coding / 人机协同 / 自主性分级</h2>
+  <p class="lead">这一支回答你的核心问题：<b>人在回路里到底该站哪个位置？</b>以及「完全自动化」在文献里被如何分级与治理。</p>
+
+  <h3>2.1 自主编码能力的天花板</h3>
+  <div class="card paper">
+    <h4>Live-SWE-agent &amp; SWE-bench Verified <span class="vb mid">需复核</span></h4>
+    <p class="kv"><b>方法</b>：Live-SWE-agent 让 Agent 在运行时根据环境反馈反思历史步骤，并<b>自主创建自定义工具</b>（自演化框架）。</p>
+    <p class="kv"><b>成果</b>：SWE-bench Verified（500 题）上 Claude Opus 4.5 达 <b>79.2%</b>、Gemini 3 Pro Preview 77.4%、Claude Sonnet 4.5 75.4%。</p>
+    <p class="kv"><b>链接</b>：<a href="https://live-swe-agent.github.io/">live-swe-agent.github.io</a></p>
+  </div>
+  <div class="card paper alt">
+    <h4>OpenHands：推理时扩展 + Critic Model <span class="vb mid">需复核</span></h4>
+    <p class="kv"><b>方法</b>：推理时扩展（inference-time scaling）+ 用 TD 学习目标训练的 Qwen 2.5 Coder 32B <b>Critic 模型</b>做结果筛选。</p>
+    <p class="kv"><b>成果</b>：SWE-bench Verified 从单轨迹 <b>60.6% → 5 次尝试 66.4%</b>。</p>
+    <p class="kv"><b>呈现</b>：官方博客柱状图 + 改进曲线。<a href="https://www.openhands.dev/blog/sota-on-swe-bench-verified-with-inference-time-scaling-and-critic-model">技术博客</a></p>
+  </div>
+  <div class="note warn">
+    <span class="h">引用红线</span>
+    综述转述的 <b>Devin = 14%</b>（未标明 SWE-bench 版本）与 <b>METR 2025「AI 让开发者慢 19%」</b>（来自二次引用博客）<b>都不能当一手事实写入论文</b>。尤其 SWE-bench 有 Lite / Verified / Pro / Live 多个子集，跨版本并列会重演你项目里「口径不一致」的老问题。
+  </div>
+
+  <h3>2.2 Vibe coding 的实证研究：人到底该管什么</h3>
+  <div class="grid2">
+    <div class="card paper">
+      <h4>Building Software by Rolling the Dice <span class="tag">FSE 2026 · arXiv:2512.22418</span> <span class="vb mid">需复核</span></h4>
+      <p class="kv"><b>方法</b>：对 vibe coding 实践的定性研究（grounded theory）。</p>
+      <p class="kv"><b>发现</b>：vibe coder 存在<b>行为光谱</b>——从几乎完全依赖 AI、不检查代码，到会检查并调整 AI 输出。</p>
+    </div>
+    <div class="card paper">
+      <h4>Why Human Guidance Matters <span class="tag">arXiv:2602.10473</span> <span class="vb mid">需复核</span></h4>
+      <p class="kv"><b>方法</b>：受控实验，比较 human-led / AI-led / hybrid 三组，16 个实验、604 名参与者。</p>
+      <p class="kv"><b>发现</b>：人类提供<b>高级方向性指令</b>最有效；AI 给的指令常导致性能下降；<b>「人类保留方向控制、AI 负责评估」的 hybrid 表现最好</b>。</p>
+    </div>
+    <div class="card paper">
+      <h4>SWE-chat <span class="tag">arXiv:2604.20779</span> <span class="vb mid">需复核</span></h4>
+      <p class="kv"><b>方法</b>：分析真实用户与 AI 编程 Agent 的交互记录。</p>
+      <p class="kv"><b>发现</b>：vibe-coded 会话每 100 行已提交代码中位消耗 <b>2.7M tokens</b>（约为协作会话 3 倍）；中位成本 <b>$2.71</b> vs 纯人工 $1.33。</p>
+    </div>
+    <div class="card paper">
+      <h4>Atria Dawn <span class="tag">arXiv:2609.15818</span> <span class="vb mid">需复核</span></h4>
+      <p class="kv"><b>方法</b>：记录科研者与 Agent 协作中的决策链。</p>
+      <p class="kv"><b>发现</b>：人类在 <b>85.5%</b> 的方法/参数决策、<b>93.4%</b> 的目标/范围决策上做最终选择；人类每次 prompt 后 Agent 日均动作 11.0 → 28.5。</p>
+    </div>
+  </div>
+  <div class="note tip">
+    <span class="h">对你的启示（关键）</span>
+    文献的一致信号是：<b>「人类定方向与红线、Agent 负责执行与评估」是当前最优分工</b>。这正好支持你的设计——把人的介入收敛为「一次性写死 <code>AUTONOMY_POLICY.md</code> + 红线」，运行期零干预。写论文时可以把这句话作为人机协同范式的理论依据。
+  </div>
+
+  <h3>2.3 自主性分级框架：给你的「全自动」一个学术坐标</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>框架</th><th>来源</th><th>分级</th><th>用途</th><th>可信度</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>CSA Agentic AI Autonomy Levels</b> v2.0</td>
+          <td>Cloud Security Alliance · 2026-03-18</td>
+          <td class="num">L0 人类执行 → <b>L5 边界内全自主</b></td>
+          <td>能力—控制矩阵、治理组件</td>
+          <td><span class="vb mid">需复核</span></td>
+        </tr>
+        <tr>
+          <td><b>CSA Agentic Trust Framework</b></td>
+          <td>CSA · 2026-02-02</td>
+          <td class="num">L1 Intern（只观察）→ L2 Junior（建议需批）→ L3 Senior（行动+通知）→ <b>L4 Principal（域内自主）</b></td>
+          <td>零信任治理规范，可部署</td>
+          <td><span class="vb mid">需复核</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+  <p class="kv">建议：在论文里明确声明你的系统处于 <b>L4/L5（human-on-the-loop 或 out-of-the-loop）</b>，并解释「人在回路上」而非「人在回路中」——即人只负责赛前定义规则、赛后验收，运行期不介入。这比空喊「全自动」更有说服力。</p>
+
+  <!-- ================= PART 3 ================= -->
+  <h2 class="part" id="p3"><span class="num">03</span>多模态医学 Agent 与基础模型</h2>
+  <p class="lead">这是与你项目最贴近的一支。重点看 Camyla——它几乎就是你的「论文版自己」。</p>
+
+  <div class="card paper" style="border-left-color:#c0392b">
+    <h4>★ Camyla: Scaling Autonomous Research in Medical Image Segmentation <span class="tag">中科大 / 上海创新院 / 上交 / 上海 AI Lab</span> <span class="vb ok">已核实</span></h4>
+    <p class="kv"><b>论文</b>：arXiv:2604.10696（2026-04-12，cs.AI）；代码 <a href="https://github.com/yifangao112/camyla">github.com/yifangao112/camyla</a>；主页 <a href="https://yifangao112.github.io/camyla-page/">yifangao112.github.io/camyla-page</a></p>
+    <p class="kv"><b>定位</b>：面向医学图像分割的<b>全自主研究系统</b>——把原始数据集自动转化为「有文献支撑的研究提案 → 可执行实验 → 完整稿件」，全程<b>零人工干预</b>。</p>
+    <h4 style="margin-top:14px">它点名的三个长时挑战（与你 <code>AUTONOMY_POLICY.md</code> 的问题一一对应）</h4>
+    <ul class="tight">
+      <li><b>搜索漂移</b>（search effort drifts toward unpromising directions）</li>
+      <li><b>知识退化</b>（knowledge from earlier trials degrades as context accumulates）</li>
+      <li><b>增量修补陷阱</b>（recovery collapses into repetitive incremental fixes）</li>
+    </ul>
+    <h4 style="margin-top:14px">三个对应机制（方法核心）</h4>
+    <ul class="tight">
+      <li><b>QWBE</b>（Quality-Weighted Branch Exploration）：把多提案搜索建模为<b>带风险厌恶先验的 bandit 问题</b>，动态分配算力、提案停滞时新建提案。</li>
+      <li><b>LRM</b>（Layered Reflective Memory）：把实验知识分为 <b>trial / cycle / global</b> 三层逐级压缩，让编码 Agent 只拿到「决策相关」的信息。</li>
+      <li><b>DDF</b>（Divergent Diagnostic Feedback）：用<b>五建议诊断组合</b>（架构/超参/代码修复/提案-实现缺口）替代单点纠错，跳出局部最优。</li>
+    </ul>
+    <h4 style="margin-top:14px">成果（可直接引用的硬数字）</h4>
+    <ul class="tight">
+      <li>基准 <b>CamylaBench = 31 个数据集</b>，<b>全部取自 2025 年发表</b>（26 个为盲测）以规避数据污染。</li>
+      <li><b>两轮独立运行、28 天、8 卡集群、零干预</b>：生成 <b>&gt;2,700 个新模型实现</b> 与 <b>40 篇完整稿件</b>。</li>
+      <li>在相同训练预算下，超过「从 14 个成熟架构（<b>含 nnU-Net</b>）中挑出的最强单数据集基线」，两轮分别 <b>22/31</b> 与 <b>18/31</b>，<b>并集 24/31</b>。</li>
+      <li>资深人类评审把生成稿件打在当代医学影像期刊的 <b>T1/T2 分界线</b>（T1 = TMI / MedIA）。</li>
+      <li>相对自动化基线：在聚合 Dice 上超过 AutoML 与 NAS 系统；在任务完成率与「超越基线频率」上超过 6 个开放式研究 Agent（其中最强通用 Agent <b>仅完成 69% 任务，且 54% 出现提案漂移</b>）。</li>
+      <li>发布 <b>CamylaTrace-232k</b>：&gt;232,000 条 Agent 事件、2,865 个编码会话、1,343 个模型实现。</li>
+    </ul>
+    <h4 style="margin-top:14px">它的评测协议（强烈建议你直接对齐）</h4>
+    <p class="kv">主指标 = 前景类平均 <b>Dice</b>；次指标 = <b>HD95</b>。「超越基线」的<b>两级判据</b>：Dice 提升 &gt; 0.5 个百分点；<b>或</b> Dice 差距在 0.5pp 以内且 HD95 严格更低。理由：既防止用微小波动冒充成功，又在体积重叠接近饱和时承认边界质量改进。</p>
+    <h4 style="margin-top:14px">它的呈现形式（论文骨架）</h4>
+    <p class="kv">主结果图（逐数据集 Dice 提升 delta，区分验证/盲测）· 与 6 个开放式 Agent 的任务完成/漂移对比 · 稿件质量分层评审 · <b>组件消融</b> · <b>探索轨迹可视化</b> · <b>跨运行稳定性与方差</b> · <b>预算敏感度</b>（累计胜率、首次成功位置）· <b>失败案例研究</b> · <b>统计显著性</b>（binomial test + per-sample Wilcoxon）· 计算成本 · 轨迹数据集。</p>
+  </div>
+
+  <div class="note danger">
+    <span class="h">这是你的头号竞争对手，也是头号模板</span>
+    Camyla 与你的项目在「任务（医学分割）、对照（nnU-Net）、协议（零干预）、产出（模型+稿件）」上高度重叠。你要么<b>找到差异化定位</b>（例如：更聚焦「可信/可审计的确定性判定」、或聚焦特定模态/竞赛排行榜名次、或强调 <code>judge.py</code> 的可复现治理），要么<b>把 Camyla 当作直接 baseline 并说明你与它的差异</b>。审稿人一定会问「你和 Camyla 有什么不同」。
+  </div>
+
+  <h3>3.1 医学影像基础模型（编码器/预训练可借鉴）</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>模型</th><th>机构/年份</th><th>方法要点</th><th>可核实指标</th><th>可信度</th></tr></thead>
+      <tbody>
+        <tr>
+          <td><b>UNI2-h</b></td><td>Mahmood Lab · 2025</td>
+          <td>病理视觉基础模型，&gt;2 亿张 256×256 H&amp;E/IHC 切片、35 万+ WSI；DINOv2 类自监督</td>
+          <td class="num">CRC-100K-Raw <span class="hi">0.957</span>；Kather MSI 0.722；TCGA-Uniform 0.675</td>
+          <td><span class="vb mid">需复核</span></td>
+        </tr>
+        <tr>
+          <td><b>Virchow2</b></td><td>Paige + Microsoft · 2024</td>
+          <td>310 万 WSI、5×–40× 多放大、近 200 种组织；tile 表示学习</td>
+          <td class="num">Kather MSI 0.713（略低于 UNI2-h）</td>
+          <td><span class="vb mid">需复核</span></td>
+        </tr>
+        <tr>
+          <td><b>Prov-GigaPath</b></td><td>Providence · 2024</td>
+          <td>tile 级 DINOv2 → slide 级 MAE + LongNet；13 亿 tile / 171,189 WSI</td>
+          <td class="num">19 个 TCGA 任务均值 0.702±0.10</td>
+          <td><span class="vb mid">需复核</span></td>
+        </tr>
+        <tr>
+          <td><b>MedSAM2</b></td><td>arXiv:2504.03600 · 2025</td>
+          <td>基于 SAM2 微调，3D 医学图像与视频分割，可 prompt</td>
+          <td class="num">45.5 万+ 3D image-mask、7.6 万+ 视频帧（未给统一 Dice）</td>
+          <td><span class="vb ok">已核实</span></td>
+        </tr>
+        <tr>
+          <td><b>MedGemma 1.5</b></td><td>Google Health AI · 2025-05</td>
+          <td>Gemma 3 4B/27B 的医学视觉-语言模型，含 agentic 行为数据</td>
+          <td class="num">4B：PubMedQA 73.4、MMLU-Med 70.0；OOD 任务 2.6× 提升</td>
+          <td><span class="vb mid">需复核</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>3.2 医学 Agent 评测基准</h3>
+  <div class="card paper">
+    <h4>MedAgentBench <span class="tag">Stanford · NEJM AI</span> <span class="vb ok">已核实</span></h4>
+    <p class="kv"><b>方法</b>：100 名虚拟患者、78.5 万条记录、300 项临床任务的真实 EHR 环境。</p>
+    <p class="kv"><b>成果</b>：Claude 3.5 Sonnet v2 总体成功率 <b>69.67%</b>（查询 85.33% / 动作 54.00%）；GPT-4o 64.00%；DeepSeek-V3 62.67%。<b>硬任务（≥3 步）Claude 仅 23.33%</b>。</p>
+    <p class="kv"><b>链接</b>：<a href="https://stanfordmlgroup.github.io/projects/medagentbench/">Stanford ML Group 项目页</a> · <a href="https://arxiv.org/pdf/2501.14654v2.pdf">arXiv:2501.14654</a></p>
+  </div>
+  <p class="kv">另有 <b>MedAgentGym</b>（72,413 个医疗编码推理任务、12 个真实场景）、<b>AgentClinic</b>（被 MedGemma 用作 agentic 行为评测）。多模态医学 Agent 系统还有 <b>MARCH</b>（多 Agent 放射报告）、<b>ARGUS</b>、<b>INFORM-CT</b>、<b>MedSegAgent</b> 等。<span class="vb mid">需复核</span></p>
+
+  <!-- ================= PART 4 ================= -->
+  <h2 class="part" id="p4"><span class="num">04</span>长时任务可靠性：漂移 · 早停 · 可复现</h2>
+  <p class="lead">这一支直接支撑你的「红线约束 + judge.py + 换路线阈值」设计，是论文里「为什么要有停止准则」的理论弹药。</p>
+
+  <h3>4.1 失败模式已被系统命名</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>失效模式</th><th>来源</th><th>要点</th><th>可信度</th></tr></thead>
+      <tbody>
+        <tr><td><b>错误雪球 / 因果传播</b></td><td>arXiv:2604.04269（2026-04）</td><td>早期微小错误在后续工具调用中级联放大；区分 static vs <b>agentic hallucination</b>；提出「Solvability Hallucination」</td><td><span class="vb mid">需复核</span></td></tr>
+        <tr><td><b>世界模型崩溃</b></td><td>arXiv:2604.01346（2026-04）</td><td>规划深度增加时 rollout 误差累积，进入物理不可能/逻辑不一致状态序列</td><td><span class="vb mid">需复核</span></td></tr>
+        <tr><td><b>级联漂移</b>（cascade drift）</td><td>zylos.ai 综述（2026-05）</td><td>强模型被弱模型启动的轨迹带偏；缓解靠 <b>periodic goal re-anchoring</b>（定期重注入高层目标）</td><td><span class="vb bad">存疑</span></td></tr>
+        <tr><td><b>灾难性遗忘</b></td><td>Horizon Leaderboard（arXiv:2604.11978）</td><td>7 类失败分类法；Agent 在长程中丢失早期约束（如「only new」「never touch payments schema」）</td><td><span class="vb mid">需复核</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>4.2 度量长时能力：METR 时间视界</h3>
+  <div class="card paper">
+    <h4>METR Task-Completion Time Horizon <span class="vb ok">已核实</span></h4>
+    <p class="kv"><b>定义</b>：50%-time horizon = 以人类专家完成时间计，Agent 能达到 <b>50% 成功率</b>的任务时长。基于 100+ 个多样软件任务。</p>
+    <p class="kv"><b>成果</b>：o3 的 50% 时间视界约 <b>110 分钟</b>；前沿模型时间视界自 2019 年起约<b>每 7 个月翻倍</b>（2024 后可能加速）；官方明确标注 <b>&gt;16 小时的测量在当前任务集上不可靠</b>。</p>
+    <p class="kv"><b>呈现</b>：对数/线性双坐标的 50% 与 80% 时间视界曲线，按模型发布时间排列。<a href="https://metr.org/time-horizons/">metr.org/time-horizons</a> · <a href="https://arxiv.org/html/2503.14499v3">arXiv:2503.14499</a></p>
+  </div>
+  <p class="kv"><b>Horizon Leaderboard</b>（arXiv:2604.11978）另提供模型榜：Claude-4-Sonnet 平均通过率 34%、GPT-5-mini 32%；break level 随领域变化（Web s=1 / OS s≈3 / Database s≈5）。<span class="vb mid">需复核</span></p>
+
+  <h3>4.3 过程验证与「何时该停」</h3>
+  <div class="grid2">
+    <div class="card paper">
+      <h4>VPRM · Verifiable Process Reward Models <span class="tag">arXiv:2601.17223</span> <span class="vb mid">需复核</span></h4>
+      <p class="kv"><b>方法</b>：每一步 reasoning 由<b>确定性 verifier</b> 评估，奖励来自显式任务准则而非只看最终答案。</p>
+    </div>
+    <div class="card paper">
+      <h4>SEVA · Self-Evolving Verification Agent <span class="tag">arXiv:2606.29713</span> <span class="vb mid">需复核</span></h4>
+      <p class="kv"><b>方法</b>：把验证质量分解为 5 个独立组件，70/30 权重偏向过程信号。</p>
+      <p class="kv"><b>成果</b>：alignment 0.917 → <b>0.997</b>；format 72% → <b>100%</b>；F1 64.9 → <b>69.0</b>。</p>
+    </div>
+    <div class="card paper">
+      <h4>语义早停 <span class="tag">arXiv:2606.27009</span> <span class="vb mid">需复核</span></h4>
+      <p class="kv"><b>方法</b>：当连续草稿 embedding 语义不再变化、且答案质量不再提升时停止——替代机械的 token 计数 kill-switch。</p>
+    </div>
+    <div class="card paper">
+      <h4>Recall-Controlled Cascade <span class="tag">arXiv:2607.06503</span> <span class="vb mid">需复核</span></h4>
+      <p class="kv"><b>方法</b>：episode 前 R 轮用 probe 检测失败信号，超阈值即 abort；用 Clopper–Pearson 下界校准每轮 recall 预算。</p>
+    </div>
+  </div>
+
+  <h3>4.4 可复现性 / 确定性评测</h3>
+  <p class="kv"><b>REAL</b>（arXiv:2504.11543）用确定性网站模拟保证同条件可重放；<b>Replayable Financial Agents</b>（arXiv:2601.15322）区分 decision repeatability / trajectory agreement / evidence-conditioned faithfulness（4,705 次 agentic runs）；<b>LifelongAgentBench</b>（arXiv:2505.11942）强调自动标签校验 + 容器化 + 模块化。这一支的共识是：<b>评测环境必须可 replay、判定必须可审计</b>——正是你 <code>judge.py</code> + <code>state.json</code> + <code>run_log.jsonl</code> 的价值所在。<span class="vb mid">需复核</span></p>
+
+  <!-- ================= PART 5 ================= -->
+  <h2 class="part" id="p5"><span class="num">05</span>横向对比：优秀论文「用什么形式展现」</h2>
+  <p class="lead">这是你最关心的问题。把 40+ 篇的呈现方式抽出来，归纳成 13 种「武器」，并标注你该怎么用。</p>
+
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>#</th><th>呈现形式</th><th>代表论文</th><th>作用</th><th>你怎么用</th></tr></thead>
+      <tbody>
+        <tr><td class="num">1</td><td><b>主结果对比表</b>（多方法 × 多数据集）</td><td>Camyla、MLE-bench</td><td>一眼看出全局优势</td><td>nnU-Net / LLM轨道 / 你的Agent × GLaS testA/testB / DRIVE</td></tr>
+        <tr><td class="num">2</td><td><b>逐数据集 delta 柱状图</b>（相对最强基线）</td><td>Camyla Fig.1(a)</td><td>把「赢在哪」可视化</td><td>每个数据集一根柱，正负分色，标注验证/盲测</td></tr>
+        <tr><td class="num">3</td><td><b>人类盲评 + AI 评审双通道</b></td><td>AI Scientist-v2、Camyla</td><td>证明产出质量非自评</td><td>请组内/导师对生成报告或结果做盲评打分</td></tr>
+        <tr><td class="num">4</td><td><b>组件消融表</b></td><td>Camyla、SEVA</td><td>证明每个机制都有用</td><td>消融 QWBE/LRM/DDF 类机制，或消融你的红线/judge</td></tr>
+        <tr><td class="num">5</td><td><b>探索轨迹 / case study</b></td><td>Camyla §5.2、§12</td><td>展示 Agent 怎么「思考」</td><td>把一次完整的 复现→改进→判负→换路线 画成时间线</td></tr>
+        <tr><td class="num">6</td><td><b>失败模式分类 + 案例</b></td><td>Horizon Leaderboard、Camyla §5.5</td><td>诚实且显专业</td><td>列出你的 Agent 失败/幻觉案例与归类</td></tr>
+        <tr><td class="num">7</td><td><b>统计显著性检验</b></td><td>Camyla §16（binomial + Wilcoxon）</td><td>防止「微小波动冒充提升」</td><td>对逐样本 Dice 做 Wilcoxon 符号秩检验</td></tr>
+        <tr><td class="num">8</td><td><b>预算 / 成本敏感度曲线</b></td><td>Camyla §5.4、MLE-bench</td><td>回应「花了多少钱」</td><td>累计胜率 vs 尝试次数；GPU 小时/token/美元</td></tr>
+        <tr><td class="num">9</td><td><b>跨运行稳定性 / 方差</b></td><td>Camyla §5.3</td><td>证明不是运气</td><td>同配置跑 2–3 次，报均值±方差</td></tr>
+        <tr><td class="num">10</td><td><b>自主性分级图</b></td><td>CSA L0–L5</td><td>给「全自动」一个坐标</td><td>声明你处于 L4/L5 并画分级示意</td></tr>
+        <tr><td class="num">11</td><td><b>时间视界 / 退化曲线</b></td><td>METR</td><td>刻画长时能力边界</td><td>画「轮次 vs 指标」看是否早停后停滞</td></tr>
+        <tr><td class="num">12</td><td><b>复现清单 / 轨迹数据集发布</b></td><td>Camyla（CamylaTrace-232k）、REAL</td><td>可复现=可信</td><td>发布 run_log.jsonl / state.json 或统计摘要</td></tr>
+        <tr><td class="num">13</td><td><b>口径一致性声明</b></td><td>本调研反复强调</td><td>避免跨口径并列</td><td>显式声明「面积加权+数据集级池化」，别混逐图平均</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="note tip">
+    <span class="h">一句话总结</span>
+    当前优秀论文的共同点是：<b>主表只是入场券，真正让审稿人信服的是「消融 + 失败分析 + 统计检验 + 成本 + 可复现」这一整套证据链</b>。你的项目已经天然具备其中大半（judge.py 确定性、run_log 留痕、口径诊断脚本），把它们组织进论文即可。
+  </div>
+
+  <!-- ================= PART 6 ================= -->
+  <h2 class="part" id="p6"><span class="num">06</span>对我们的借鉴：可效仿的论文骨架</h2>
+  <p class="lead">结合你现有资产（<code>AUTONOMY_POLICY.md</code> / <code>judge.py</code> / <code>ROUTE_POOL.yaml</code> / <code>run_log.jsonl</code> / nnU-Net 对照 / 官方口径评估），给出可直接落地的论文结构。</p>
+
+  <h3>6.1 定位与差异化（先回答「你和 Camyla 有何不同」）</h3>
+  <div class="card">
+    <ul class="tight">
+      <li><b>Camyla 的强项</b>：规模（31 数据集）、完整科研闭环（还写论文）、三机制探索框架。</li>
+      <li><b>你的潜在差异点</b>（择一为主、其余为辅）：
+        <ul class="tight">
+          <li><b>可审计的确定性治理</b>：把「何时继续/换路线/终止」做成 <code>judge.py</code> 的确定性规则 + 红线契约，强调<b>可复现、可审计</b>（对标 VPRM / Replayable Agents 的可复现主线）。</li>
+          <li><b>口径严谨性</b>：显式处理并量化「官方口径 vs 逐图平均」的差异（你已有 <code>diag_convention.py</code> 数据：testA 差 0.12、testB 差 0.16），把它上升为方法论贡献。</li>
+          <li><b>竞赛排行榜导向</b>：以真实排行榜名次（目标前 50%）作为外部效度证据，而非仅内部基准。</li>
+        </ul>
+      </li>
+    </ul>
+  </div>
+
+  <h3>6.2 建议章节骨架</h3>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>章节</th><th>写什么</th><th>效仿对象</th></tr></thead>
+      <tbody>
+        <tr><td><b>1 引言</b></td><td>医学分割的长时自动化挑战：搜索漂移 / 知识退化 / 增量修补；提出「规则契约 + 确定性判定」的人机分工范式</td><td>Camyla §1、AI Scientist-v2</td></tr>
+        <tr><td><b>2 相关工作</b></td><td>自主科研 Agent（AI Scientist/co-scientist/Agent Lab）；人机协同与自主性分级（CSA）；长时可靠性与早停</td><td>本调研 Part 1–4</td></tr>
+        <tr><td><b>3 方法</b></td><td>系统架构：ROUTE_POOL 候选路线池 → 复现/改进 → 小轮/大轮 → judge.py 判定 → 留痕；红线 R1–R9；两级目标 L1/L2</td><td>Camyla §3 的「机制对应挑战」写法</td></tr>
+        <tr><td><b>4 实验设置</b></td><td>数据集（GLaS/DRIVE/PUMA…）、官方评估协议（含口径声明）、对照（标准 nnU-Net v2、LLM 轨道）、两级超越判据（Dice +0.5pp 或 HD95 tiebreak）</td><td>Camyla §2.1</td></tr>
+        <tr><td><b>5 主结果</b></td><td>主表 + 逐数据集 delta 图 + 排行榜名次</td><td>Camyla Fig.1(a)</td></tr>
+        <tr><td><b>6 分析与消融</b></td><td>机制消融、红线效果、judge 判负案例、探索轨迹</td><td>Camyla §5</td></tr>
+        <tr><td><b>7 失败分析</b></td><td>幻觉/漂移案例分类、口径陷阱复盘</td><td>Horizon Leaderboard、Camyla §5.5</td></tr>
+        <tr><td><b>8 成本与可复现</b></td><td>GPU 小时 / 轮次 / 人工干预次数=0；run_log / state.json 复现清单</td><td>MLE-bench、REAL</td></tr>
+        <tr><td><b>9 局限与讨论</b></td><td>自评 vs 外部评审、数据污染风险、泛化边界</td><td>Camyla §7</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h3>6.3 立即可做的三件事</h3>
+  <div class="card">
+    <ol class="tight">
+      <li><b>把 Camyla 列为直接对照并复现其评测协议</b>（Dice + HD95 两级判据），让你的数字与它同口径可比。</li>
+      <li><b>把「口径」升级为方法论贡献</b>：你已有 <code>diag_convention.py</code> 的量化差异（testA 0.12 / testB 0.16），这在文献里是稀缺的严谨性证据。</li>
+      <li><b>补齐「统计显著性 + 跨运行方差」</b>：Camyla 用了 binomial + Wilcoxon，你的 <code>judge.py</code> 决策日志正好可以支撑「跨运行稳定性」这一节。</li>
+    </ol>
+  </div>
+
+  <!-- ================= PART 7 ================= -->
+  <h2 class="part" id="p7"><span class="num">07</span>存疑与待核实清单</h2>
+  <p class="lead">按你的要求，把「不能直接引用」的内容单独列出。<b>这些写进论文前必须回原文核实，否则一律标 UNVERIFIED。</b></p>
+  <div class="tbl-wrap">
+    <table>
+      <thead><tr><th>条目</th><th>问题</th><th>处理建议</th></tr></thead>
+      <tbody>
+        <tr><td>METR「AI 让开发者慢 19%」</td><td>来自二次引用博客，非 METR 原始页面</td><td>找到 METR 原始报告再引用，或弃用</td></tr>
+        <tr><td>Devin = 14%</td><td>未标明 SWE-bench 版本，且来自综述转述</td><td>核对具体子集后再用，禁止与其他子集并列</td></tr>
+        <tr><td>EvoScientist「6/6 接收 / Best Paper」</td><td>仅第三方页面声称，官方 arXiv 摘要未佐证</td><td>标注未核实，勿写入</td></tr>
+        <tr><td>Med-PaLM 2 = 86.5% USMLE</td><td>第三方材料摘要</td><td>回 Google 原始论文核对</td></tr>
+        <tr><td>多个 2026 年 arXiv 编号（2601/2602/2604/2606/2607/2609.*）</td><td>部分为检索片段，未逐篇打开全文</td><td>引用前逐篇打开 arXiv 页面确认标题/作者/数字</td></tr>
+        <tr><td>UNI2 / Virchow2 / GigaPath 具体分数</td><td>来自 GitHub/博客片段，未展开原始论文表</td><td>回各自论文的 benchmark 表核对</td></tr>
+        <tr><td>「红队提示词约束」相关论文</td><td>本轮未检索到 2025–2026 直接对应的可引用论文</td><td>该方向证据薄弱，论文中避免强断言</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="note danger">
+    <span class="h">最后提醒</span>
+    本次调研中，<span class="vb ok">已核实</span> 的条目（Camyla 全部数字、AI Scientist-v2、MLE-bench 16.9%、PaperBench 21.0%、MedAgentBench 69.67%、METR 时间视界）可直接进入你的文献综述。<span class="vb mid">需复核</span> 与 <span class="vb bad">存疑</span> 的条目请勿直接引用——这正是你一贯坚持的「禁止编造、来源可追溯」原则。
+  </div>
+
+  <!-- ================= SOURCES ================= -->
+  <h2 class="part" id="src"><span class="num">附录</span>来源清单</h2>
+  <div class="card">
+    <h4>自主科研 Agent</h4>
+    <p class="kv mono" style="line-height:2">
+      AI Scientist-v2 · <a href="https://arxiv.org/html/2504.08066v1">arXiv:2504.08066</a> · <a href="https://sakana.ai/ai-scientist-nature/">sakana.ai/ai-scientist-nature</a><br>
+      Google AI co-scientist · <a href="https://deepmind.google/blog/co-scientist-a-multi-agent-ai-partner-to-accelerate-research/">deepmind.google/blog/co-scientist</a><br>
+      Agent Laboratory · <a href="https://arxiv.org/abs/2501.04227">arXiv:2501.04227</a><br>
+      AI-Researcher · <a href="https://arxiv.org/html/2505.18705v1">arXiv:2505.18705</a><br>
+      InternAgent · <a href="https://arxiv.org/abs/2505.16938">arXiv:2505.16938</a><br>
+      EvoScientist · <a href="https://arxiv.org/abs/2603.08127">arXiv:2603.08127</a>（存疑）<br>
+      MLE-bench · <a href="https://arxiv.org/html/2410.07095v4">arXiv:2410.07095</a><br>
+      PaperBench · <a href="https://cdn.openai.com/papers/22265bac-3191-44e5-b057-7aaacd8e90cd/paperbench.pdf">OpenAI paperbench.pdf</a><br>
+      RE-Bench · <a href="https://arxiv.org/abs/2411.15114">arXiv:2411.15114</a><br>
+      MLGym · <a href="https://arxiv.org/abs/2502.14499">arXiv:2502.14499</a><br>
+      ScienceAgentBench · <a href="https://arxiv.org/abs/2410.05080">arXiv:2410.05080</a>
+    </p>
+    <h4>Vibe Coding / 人机协同</h4>
+    <p class="kv mono" style="line-height:2">
+      Live-SWE-agent · <a href="https://live-swe-agent.github.io/">live-swe-agent.github.io</a><br>
+      OpenHands SOTA · <a href="https://www.openhands.dev/blog/sota-on-swe-bench-verified-with-inference-time-scaling-and-critic-model">openhands.dev/blog</a><br>
+      Building Software by Rolling the Dice · <a href="https://arxiv.org/html/2512.22418v2">arXiv:2512.22418</a><br>
+      Why Human Guidance Matters · <a href="https://arxiv.org/html/2602.10473v1">arXiv:2602.10473</a><br>
+      SWE-chat · <a href="https://arxiv.org/html/2604.20779">arXiv:2604.20779</a><br>
+      Atria Dawn · <a href="https://arxiv.org/html/2609.15818v1">arXiv:2609.15818</a><br>
+      CSA Autonomy Levels · <a href="https://labs.cloudsecurityalliance.org/research/agentic-ai-autonomy-levels-control-framework-v2-csa-styled/">cloudsecurityalliance.org</a><br>
+      CSA Agentic Trust Framework · <a href="https://cloudsecurityalliance.org/blog/2026/02/02/the-agentic-trust-framework-zero-trust-governance-for-ai-agents/">cloudsecurityalliance.org/blog</a>
+    </p>
+    <h4>多模态医学 Agent 与基础模型</h4>
+    <p class="kv mono" style="line-height:2">
+      <b>Camyla</b> · <a href="https://arxiv.org/html/2604.10696v1">arXiv:2604.10696</a> · <a href="https://github.com/yifangao112/camyla">github.com/yifangao112/camyla</a><br>
+      MedSAM2 · <a href="https://medsam2.github.io/">medsam2.github.io</a> · <a href="https://arxiv.org/html/2504.03600v1">arXiv:2504.03600</a><br>
+      MedAgentBench · <a href="https://stanfordmlgroup.github.io/projects/medagentbench/">stanfordmlgroup.github.io</a> · <a href="https://arxiv.org/pdf/2501.14654v2.pdf">arXiv:2501.14654</a><br>
+      MedGemma · <a href="https://developers.google.com/health-ai-developer-foundations/medgemma/model-card">Google model card</a><br>
+      UNI2 · <a href="https://github.com/mahmoodlab/UNI">github.com/mahmoodlab/UNI</a><br>
+      Virchow2 · <a href="https://arxiv.org/html/2408.00738v2">arXiv:2408.00738</a><br>
+      Prov-GigaPath · <a href="https://arxiv.org/html/2407.06508v3">arXiv:2407.06508</a>
+    </p>
+    <h4>长时可靠性</h4>
+    <p class="kv mono" style="line-height:2">
+      METR Time Horizons · <a href="https://metr.org/time-horizons/">metr.org/time-horizons</a> · <a href="https://arxiv.org/html/2503.14499v3">arXiv:2503.14499</a><br>
+      Horizon Leaderboard · <a href="https://arxiv.org/html/2604.11978">arXiv:2604.11978</a><br>
+      Error propagation · <a href="https://arxiv.org/html/2604.04269">arXiv:2604.04269</a>（需复核）<br>
+      VPRM · <a href="https://arxiv.org/html/2601.17223v1">arXiv:2601.17223</a>（需复核）<br>
+      SEVA · <a href="https://arxiv.org/abs/2606.29713">arXiv:2606.29713</a>（需复核）<br>
+      Semantic Early-Stopping · <a href="https://arxiv.org/html/2606.27009v1">arXiv:2606.27009</a>（需复核）<br>
+      REAL · <a href="https://arxiv.org/html/2504.11543v2">arXiv:2504.11543</a>（需复核）
+    </p>
+  </div>
+
+  <footer>
+    本报告由 TRAE 生成 · 2026-10-08 · 调研范围：2025–2026 年 arXiv / 顶会 / 官方博客。<br>
+    所有 <span class="vb ok">已核实</span> 条目均可追溯至一手来源；<span class="vb mid">需复核</span> 与 <span class="vb bad">存疑</span> 条目请在正式引用前回原文确认。
+  </footer>
+
+</div>
+</body>
+</html>

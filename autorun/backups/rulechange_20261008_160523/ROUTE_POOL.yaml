@@ -1,0 +1,186 @@
+# ROUTE_POOL — 候选路线池
+#
+# 由 Step 0 调研产出，Agent 按优先级顺序取用；弃一条就取池中下一条。
+#
+# 字段说明：
+#   id            路线编号（稳定不变，供 state.json 引用）
+#   method        方法名
+#   paper         论文链接（来源，红线 R2 —— 无来源不得用于判定）
+#   code          开源实现链接；填 "<无>" 表示**经核实确实没有**可用的官方实现
+#   code_verified 我们是否亲自核实过：链接可打开 且 仓库内含训练/推理代码（红线 R4）
+#                 false 时不得标 confidence: high
+#   reproduced    是否已复现成功（指标落在论文报告值合理区间）
+#   reported      论文报告指标（必须带口径，红线 R1）
+#   confidence    high（有代码，可作复现锚点）/ low（无代码或口径不对口，不作锚点）
+#   status        pending / reproducing / anchor / improving / failed
+#
+# ══ Step 0 核实记录（2026-10-08）════════════════════════════════════
+#   核实方法：GitHub 仓库搜索（search_repositories）+ 逐个打开仓库确认目录/文件
+#             + 回到论文原文取数。每一步都可复现，命令与来源见下。
+#
+#   结论 1｜三条"名头很响"的路线，其实都没有官方代码
+#     · MILD-Net   ：搜 `MILD-Net in:name` → 仅 Vinnni002/MILD-Net（1 star，第三方，非官方）；
+#                    作者 Simon Graham 名下搜 `user:simon-graham` → 0 个仓库。
+#     · DCAN       ：搜 `DCAN gland segmentation contour aware` → 仅 1 条
+#                    ShamilKaleel/DCAN-Gland-Segmentation，**2026-10-08 当天新建、0 字节、0 star**
+#                    → 空壳仓库，不可用。（这条就是红线 R4 要防的典型陷阱：
+#                    "搜到了同名仓库" ≠ "这个仓库能用"。）
+#     · RIC-Unet   ：搜 `RIC-Unet gland segmentation` → 0 条。
+#     ⇒ 三条一律 code: "<无>"、confidence: low、不作复现锚点。
+#       它们的数值仍可当参考线（有论文来源），但**不能用来验证我们自己的口径对不对**。
+#
+#   结论 2｜找到两条真实可用、且已打开确认含代码的仓库
+#     · R05 U-Node ：DIAGNijmegen/neural-odes-segmentation（111 star，Python）
+#                    仓库内确认存在 models.py / dataloader.py / metrics.py /
+#                    train_models.ipynb / inference_utils.py，README 附 Colab 一键跑。
+#                    **报告的是官方对象级指标** → 可直接做 GLaS 的复现锚点。
+#     · R06 GLaS-UNet：twpkevin06222/Gland-Segmentation（28 star）
+#                    仓库内确认存在 train.py / model.py / metric.py / weights/。
+#
+#   结论 3｜顺带抓到一个口径陷阱（红线 R1 的活教材）
+#     R06 的 README 白纸黑字写着：结果是按 **pixel-wise** 评估的，
+#     "instead of gland-wise segmentation"，且作者自己把 object dice/F1 列为 future work。
+#     它报的 testB Dice 0.91 是**像素级**，跟我们的**对象级** 0.8184 根本不是一把尺子。
+#     若不加区分地并列，就会得出"我们差 0.09"的错误结论。
+#
+#   结论 4｜修正一处来源错误
+#     原 R02 的 paper 指向 arXiv:1603.00275 —— 核实后那是 **GLaS 挑战赛综述论文**
+#     （Sirinukunwattana et al., "Gland Segmentation in Colon Histology Images: The GlaS
+#     Challenge Contest"），不是 DCAN 原文。DCAN 原文是 arXiv:1604.02677，已更正。
+#
+#   ── 已闭环的人工决定（2026-10-08）────────────────────────────
+#     · L2 已由 MILD-Net 0.836 **上移到 U-Node 0.842**，对齐"有代码、可复现"的锚点。
+#       详见 baseline_ref 下方注释。
+#     · R03_RICUnet **已移除**（原文做的是细胞核分割，与腺体任务域不符）。
+#       详见下方注释（保留痕迹，便于审计"为什么删"）。
+#
+#   ── 仍待人工确认（不阻塞）────────────────────────────────────
+#     · MILD-Net 的 testA/testB 数值本次未能从论文原文表格直接重取；MIA 版 DOI 有两个候选
+#       （...media.2018.11.001 / ...media.2018.12.001）。
+#       它现在**只作参考线、不再承担 L2**，风险已降低，可慢慢核。
+
+task: GLaS
+metric: testB_objDice
+convention: official_object_level     # 官方对象级：1:1 最大重叠对应 + 面积加权 + 数据集级池化
+baseline_ref:
+  nnunet_baseline: 0.8184             # 本项目 nnU-Net v2 官方口径实测（= L1 线）
+  published_sota: 0.842               # U-Node 2019（= L2 线）；来源 arXiv:1910.10470 Table 1
+  # ── 2026-10-08 人工决定：L2 由 MILD-Net 0.836 上移到 U-Node 0.842 ──
+  #   理由：U-Node 有**可复现的开源代码**（R05），能同时充当"口径对齐锚点"；
+  #         MILD-Net 无官方代码，只能当参考线，撑不起"锚点"这个角色。
+  #   配套改动：AUTONOMY_POLICY.md v1.3→v1.4、datasets.yaml、policy.json 同步；
+  #             judge.py / replay.py 的用例值随之调整（L2 变了，旧用例会失效）。
+source_note: >
+  对象级指标的定义与数值交叉核对来源：NODE 论文 arXiv:1910.10470 Table 1
+  （列名 "Object Dice (A, B)" / "F1 score (A, B)"；正文明确 "We evaluate our models using
+  the challenge metrics[1]; a weighted Dice coefficient per gland (object Dice)"）。
+
+routes:
+
+  - id: R01_MILDNet
+    method: "MILD-Net (Graham et al., MIA 2019)"
+    paper: "https://arxiv.org/abs/1806.01963"
+    code: "<无>"
+    code_verified: false
+    reproduced: false
+    reported: { testA_objDice: 0.913, testB_objDice: 0.836, testB_objF1: 0.844 }
+    reported_convention: official_object_level
+    confidence: low
+    status: pending
+    note: >
+      Step 0：无作者官方开源实现（见文件头结论 1）→ 只能 low，不作锚点。
+      数值保留作 L2 参考线，来源为 MIA 2019 论文。
+      ⚠ 待人工复核：testA/testB 两格数值本次未从原文表格重取成功；且 MIA 版 DOI
+      有两个候选（10.1016/j.media.2018.11.001 / 10.1016/j.media.2018.12.001）。
+      复核通过前，L2 线视为"暂定"。
+
+  - id: R02_DCAN
+    method: "DCAN / CUMedVision2 (Chen et al., CVPR 2016)"
+    paper: "https://arxiv.org/abs/1604.02677"
+    code: "<无>"
+    code_verified: false
+    reproduced: false
+    reported: { testA_objDice: 0.897, testB_objDice: 0.781, testB_objF1: 0.716 }
+    reported_convention: official_object_level
+    confidence: low
+    status: pending
+    note: >
+      Step 0：无作者官方开源（同名 GitHub 仓库为空壳）→ low，不作锚点。
+      数值经**第二来源交叉核对**：NODE 论文 arXiv:1910.10470 Table 1 的
+      "Chen et al. [15]" 行 = Object Dice 0.868 (0.897, 0.781) / F1 0.863 (0.912, 0.716)
+      → 与 testB 0.781 / 0.716 一致 ✅。
+      更正记录：原 paper 链接 arXiv:1603.00275 实为 GLaS 挑战赛综述，非 DCAN 原文，已改为 1604.02677。
+      参考价值：testB ObjDice 0.781 低于我们 nnU-Net 的 0.8184，但 ObjF1 0.716 高于我们的 0.611
+      → 差距在"实例分离"而非"像素覆盖"，其双任务(分割+轮廓)思路值得借鉴。
+
+  # ── R03_RICUnet 已于 2026-10-08 人工移除 ────────────────────────
+  #   移除理由（已核实，4 个独立来源一致）：RIC-Unet 原文
+  #   "RIC-Unet: An Improved Neural Network Based on Unet for **Nuclei** Segmentation
+  #    in Histology Images"（Zeng et al., IEEE Access 2019）做的是**细胞核**分割，
+  #   不是腺体分割 → 与本任务域不匹配。
+  #   附带：GitHub 搜不到任何实现；原记录中的 0.918 无来源（违反红线 R2）。
+  #   保留此注释是为了留下"为什么删"的痕迹（R8），不是留占位。
+
+  - id: R04_NNUNetImproved
+    method: "本项目 nnU-Net v2 基线 + 后处理改进（剔除小目标 + 3×3 开运算）"
+    paper: "—"
+    code: "<本项目自有>"
+    code_verified: true
+    reproduced: true
+    reported:
+      testA_objF1_gain: "+0.08"
+      testB_objF1_gain: "+0.12"
+      source: "本项目碎片消融实验"
+    reported_convention: official_object_level
+    confidence: high
+    status: pending
+    note: "成本最低、见效最快的路线；无需重训，仅改推理后处理。Step 0 未改动此条。"
+
+  # ── Step 0 新增：真实可用、含代码的复现锚点 ──────────────────────
+  - id: R05_UNODE
+    method: "U-Node / Neural ODE U-Net (Pinckaers & Litjens, NeurIPS-MI workshop 2019)"
+    paper: "https://arxiv.org/abs/1910.10470"
+    code: "https://github.com/DIAGNijmegen/neural-odes-segmentation"
+    code_verified: true
+    reproduced: false
+    reported: { testA_objDice: 0.893, testB_objDice: 0.842, testB_objF1: 0.801 }
+    reported_convention: official_object_level
+    confidence: high
+    status: pending
+    note: >
+      **首选复现锚点**。仓库已核实：含 models.py / dataloader.py / metrics.py /
+      train_models.ipynb / inference_utils.py，README 附 Colab；111 star。
+      指标取自论文 Table 1 "U-Node" 行：Object Dice 0.881 (0.893, 0.842)，
+      F1 0.861 (0.882, 0.801) —— 括号内为 (testA, testB)。
+      复现意义：其报告值与我们同口径，跑通即证明**我们的评估管线口径对齐**；
+      注意其 testB ObjDice 0.842 高于现用 L2=0.836（是否上移 L2 见文件头遗留项）。
+
+  - id: R06_GLaS_UNet
+    method: "GLaS 二值 U-Net 基线 (twpkevin06222)"
+    paper: "—"
+    code: "https://github.com/twpkevin06222/Gland-Segmentation"
+    code_verified: true
+    reproduced: false
+    reported: { testB_pixelDice: 0.91, testB_pixelF1: 0.90 }
+    reported_convention: pixel_level
+    confidence: low
+    status: pending
+    note: >
+      仓库已核实：含 train.py / model.py / metric.py / weights/，28 star。
+      **但标 low，原因不是没代码，而是口径不对口**：README 明确写结果是
+      "evaluated on pixel-wise segmentation ... instead of gland-wise"，
+      其 object dice/F1 被列为 future work。
+      ⇒ 只能作**像素级**参考，**不得**用来校验我们的对象级口径（红线 R1）。
+      保留价值：一个轻量、代码完整、可快速跑通的 sanity check（验证数据管线通不通）。
+
+# ─────────────────────────────────────────────────────────────
+# DRIVE 路线池（骨架，Step 0 尚未开展）
+# ─────────────────────────────────────────────────────────────
+# task: DRIVE
+# metric: cv_dice
+# convention: pixel_level
+# baseline_ref:
+#   nnunet_baseline: 0.7990
+#   published_sota: null        # 排行榜前50%，需先确认榜单总条目数
+# routes:
+#   - id: D01_...

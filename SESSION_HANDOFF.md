@@ -11,8 +11,9 @@
 
 ## 1. 项目一句话定位
 
-AI 辅助的医学 2D 分割 benchmark：用固定的标准化 prompt 工作流 + 病理基础模型 UNI，
-在多个竞赛上对比「病理域预训练 vs ImageNet 预训练」的差距，产出可复现、可发表的基准论文。
+用 AI（LLM + vibe coding）自主完成医学 2D 分割任务：由 AI 自己调研、定技术路线、选择甚至
+革新方法、实现与调优，人尽量不参与、只认最终指标；验证 vibe coding 在医学分割上的可行性
+与上限，沉淀可复现、可审计的标准化流程，产出可发表的论文。
 
 ---
 
@@ -78,10 +79,12 @@ Step 6  打包提交（如竞赛开放）
 
 ## 5. 当前决策状态
 
-- **下一个竞赛**：BEETLE 已排除（587 张 WSI，100+GB 数据量，超出 2D 小图框架）
-- **GLaS 腺体分割**（165 张 H&E 小图，~775×522，几百 MB，UNI 适用）← 推荐
-  - 注意：GLaS 是 MICCAI 2015 比赛，**已关闭提交**，作为 benchmark 数据集用（可对标 SOTA，适合论文）
-- 备选：MoNuSeg（30 张）、TNBC（50 张）——同为病理小图，不能提交
+- **当前主攻：GLaS 腺体分割**（165 张 H&E 小图，~775×522）。2015 年 MICCAI 老比赛、已关闭提交，
+  但数据公开 + 协议官方 + SOTA 明确（RIC-UNet 0.918），作 benchmark 用。
+  - 现状：UNI 双头 testB objDice 0.7513，落后 U-Net 基线 0.768；真瓶颈 = 实例分离 + 跨集泛化。
+  - 正在推进：HoVer-Net 式距离图头 + 梯度能量分水岭，专打实例分离；不达预期则转 RIC-UNet（0.918）。
+- **下一步新任务候选**：MoNuSeg（30 张）、TNBC（50 张）——同为病理小图，补全"非血管、非腺体"任务验证框架通用性。
+- BEETLE：已排除（587 WSI、100+GB，超出 2D 小图框架）。
 
 ---
 
@@ -106,6 +109,22 @@ Step 6  打包提交（如竞赛开放）
 - UNI 权重：`MahmoodLab/UNI`（已授权，已下载）
 
 ---
+
+## 7b. nnU-Net 基线环境（AutoDL 实例，本次已配好）
+
+- **SSH**：`ssh -p 14531 root@connect.cqa1.seetacloud.com`（免密已配，私钥在 `.ssh_keys/id_ed25519`）
+- **免密工具**：`python .ssh_keys/remote.py "远程命令"`（paramiko 密钥登录，无需密码）
+- **conda 环境**：`nnunet`（Python 3.10，torch 2.5.1+cu124，nnunetv2 2.8.1，SimpleITK/scikit-image 等齐全）
+- **nnU-Net 环境变量**（已写入远程 `~/.bashrc`，登录自动生效）：
+  - `nnUNet_raw=/root/autodl-tmp/nnUNet/raw`
+  - `nnUNet_preprocessed=/root/autodl-tmp/nnUNet/preprocessed`
+  - `nnUNet_results=/root/autodl-tmp/nnUNet/results`
+- **已就位数据**（均已 plan + preprocess 完成）：
+  - `Dataset070_GLAS`：85 训练样本（腺体二分类）
+  - `Dataset071_DRIVE`：20 训练样本（血管二分类）
+- **基线训练入口**：`nnUNetv2_train <dataset_id> 2d <fold>`（fold 0~4）
+  - 例：`nnUNetv2_train 71 2d 0`（DRIVE 第 0 折）
+  - 本地编排脚本：`.trae/skills/nnunet-baseline/scripts/run_baseline.sh`
 
 ## 8. 论文投稿目标
 

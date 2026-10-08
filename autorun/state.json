@@ -1,0 +1,73 @@
+{
+  "task": "GLaS",
+  "policy_version": "1.5",
+  "phase": "reproduce",
+  "current_route": "R05_UNODE",
+  "route_index": 0,
+  "route_total": 5,
+  "small_rounds": {
+    "count": 0,
+    "history": []
+  },
+  "big_rounds": {
+    "count": 0,
+    "history": []
+  },
+  "best": {
+    "metric": "testB_objDice",
+    "value": 0.0,
+    "source": "ours",
+    "note": "只记自研/改进模型的结果（红线 R10）；复现别人的方法所得分数见 anchor，不得写进这里"
+  },
+  "anchor": {
+    "route": "R05_UNODE",
+    "metric": "testB_objDice",
+    "subset": "testB",
+    "convention": "unode_official_object_level",
+    "convention_detail": "实例标签预测（后处理生长后相邻腺体标签仍独立）+ 8连通标注 + 众数匹配 + 面积加权后逐图平均。原样照搬 U-Node 仓库 metrics.py 与 train_models.ipynb。",
+    "reported_value": 0.842,
+    "reproduced_value": 0.8428,
+    "reproduced_testA": 0.8872,
+    "reproduced_testB_f1": 0.6754,
+    "our_convention_value": 0.8215,
+    "our_convention_detail": "同一批预测改成二值输出，用本仓库 eval_glas_official.py（4连通 + argmax + 数据集级池化）评估所得 testB ObjDice。",
+    "gap_root_cause": "口径差主因是「实例标签 vs 二值重标注」：U-Node 的 grow_to_fill_borders 会让相邻腺体在二值图上粘连、但在标签图里仍是独立对象；二值重标注会把它们合并（抽样5图 89→50 个对象），从而系统性低估约 0.02。加权方式（面积加权 vs 等权）为次因，连通性/匹配规则影响很小。",
+    "source_url": "https://arxiv.org/abs/1910.10470",
+    "code_url": "https://github.com/DIAGNijmegen/neural-odes-segmentation",
+    "weights": "best_border_unode_paper.pt（官方仓库自带，state_dict 零缺失加载）",
+    "verified": true,
+    "note": "口径校验锚点：U-Node 官方口径 testB ObjDice 复现为 0.8428，与论文报告值 0.842 吻合，说明复现本身可信。但本仓库评估脚本的口径与之不一致（同一批预测 0.8215），因此 L2 线 0.842 目前不是「同口径可比」的目标 —— 需人工裁定以哪套口径为准。按红线 R10 不计入 best。"
+  },
+  "baseline_ref": {
+    "nnunet": 0.8184,
+    "sota": 0.842
+  },
+  "routes_failed": [],
+  "stop_reason": null,
+  "pending_human_decisions": [
+    {
+      "id": "GLaS_EVAL_CONVENTION",
+      "blocks": "Step 2（在锚点上改进 + 判定 + 换路线）",
+      "question": "GLaS 的 L2 冲刺线 0.842 取自 U-Node 的「实例标签 + 面积加权逐图平均」口径，而本仓库 eval_glas_official.py 用「二值 + 池化」口径，两者对同一批预测相差约 0.02。需裁定采用哪套口径，否则达标判定是拿苹果比橘子。",
+      "evidence": "audit_glas_metric_protocol.py 的 16 组对照：同一预测形态下各协议相差 <0.002；分水岭是「实例标签 vs 二值重标注」（0.8440 vs 0.8215）。详见 RESEARCH_LOG.md#glas-unode-repro",
+      "options": [
+        "A（推荐）：评估脚本支持实例标签输入（官方提交格式），改用众数匹配 + 面积加权；L2 维持 0.842",
+        "B：维持现有二值+池化口径，把 L2 线按同口径重算（U-Node 同口径为 0.8215，nnU-Net 0.8184）"
+      ],
+      "raised_at": "2026-10-08T17:11:28+08:00"
+    },
+    {
+      "id": "R1_CALIBRATION_EXEMPTION",
+      "blocks": "一键验收回到 8/8（当前 7/8）",
+      "question": "红线 R1（口径锁定）现在报 2 项违规：新增的「锚点校准」数字（unode_official_object_level: testA 0.8872 / testB 0.8428）与原有官方口径数字同 metric+subset，被判定为「跨口径并列」。但这两条数字的用途恰恰是**记录口径差异**，不是拿来比较的；且 R10 已保证它们进不了 best。需裁定是否给 R1 增加校准类豁免。",
+      "evidence": "python autorun/redlines.py --audit → 15 项 2 违规；acceptance 7/8（其余 7 项全过）",
+      "options": [
+        "A（推荐）：R1 比较组排除 role 以 anchor_calibration 开头的数字（它们为记录口径差异而存在）",
+        "B：把校准类数字移出 claims.jsonl，单独存 autorun/calibration.jsonl，不进 R1 比较组",
+        "C：先不动规则，接受 acceptance 7/8，攒一批一起改"
+      ],
+      "raised_at": "2026-10-08T18:05:00+08:00"
+    }
+  ],
+  "updated_at": "2026-10-08T18:05:00+08:00"
+}

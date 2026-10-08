@@ -1,0 +1,30 @@
+{
+  "task": "GLaS",
+  "current_route": "R05_UNODE",
+  "route_index": 0,
+  "route_total": 5,
+  "small_rounds": {
+    "count": 0,
+    "history": []
+  },
+  "big_rounds": {
+    "count": 0,
+    "history": [
+      0.812,
+      0.82,
+      0.845
+    ]
+  },
+  "best": {
+    "metric": "testB_objDice",
+    "value": 0.845,
+    "source": "ours"
+  },
+  "anchor": {
+    "route": "R05_UNODE",
+    "reproduced_value": 0.838
+  },
+  "routes_failed": [],
+  "stop_reason": "SUCCESS_L2",
+  "policy_version": "1.5"
+}

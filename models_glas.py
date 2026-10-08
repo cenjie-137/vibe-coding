@@ -1,11 +1,13 @@
-"""models_glas.py — GlandUNet：UNI 病理编码器 + U-Net 解码器 + 双头（分割 + 轮廓）
+"""models_glas.py — GlandUNet：UNI 病理编码器 + U-Net 解码器 + 多头（分割 + 轮廓 + 距离图）
 
-DCAN 式轮廓感知网络（GLaS 2015 官方冠军策略）：
+DCAN 式轮廓感知网络（GLaS 2015 官方冠军策略）+ HoVer-Net 式距离图头：
   seg head      -> 腺体前景（二值）
   contour head  -> 腺体边界（用于拆分粘连腺体，对象级评估关键）
+  dist head     -> 每前景像素到其所属腺体质心的像素距离向量 (dy, dx)（全局统一归一化）
+                   （HoVer-Net 实例分离：方向场梯度能量做分水岭切割粘连腺体）
 
-注：解码头为 v1 简单双卷积块（Conv-BN-ReLU ×2），与 v1 权重
-    output_glas/best_fold_*.pth 一一对应，可 strict=True 加载。
+注：解码头为 v1 简单双卷积块（Conv-BN-ReLU ×2）。加 dist_head 后 state_dict
+    新增 dist_head.* 键，旧 v1 权重（无 dist head）无法 strict 加载，需重训。
 """
 import torch
 import torch.nn as nn
@@ -45,6 +47,7 @@ class GlandUNet(nn.Module):
 
         self.seg_head = nn.Conv2d(64, 1, 1)
         self.contour_head = nn.Conv2d(64, 1, 1)
+        self.dist_head = nn.Conv2d(64, 2, 1)
 
     def forward(self, x):
         size = x.shape[2:]
@@ -57,7 +60,8 @@ class GlandUNet(nn.Module):
             x = F.interpolate(x, size=size, mode='bilinear', align_corners=False)
         seg = self.seg_head(x)
         contour = self.contour_head(x)
-        return seg, contour
+        dist = self.dist_head(x)  # (B,2,H,W) 全局归一化像素距离，通道0=dy、1=dx
+        return seg, contour, dist
 
 
 class ResNet34Encoder(nn.Module):

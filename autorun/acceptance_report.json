@@ -1,0 +1,74 @@
+{
+  "generated_at": "2026-10-08T19:27:06+08:00",
+  "policy_version": "1.5",
+  "n_checks": 8,
+  "n_passed": 8,
+  "all_passed": true,
+  "results": [
+    {
+      "kind": "selftest",
+      "name": "判定器 judge",
+      "cmd": "judge.py --selftest",
+      "ok": true,
+      "detail": "11/11 用例通过"
+    },
+    {
+      "kind": "selftest",
+      "name": "溯源账本 ledger",
+      "cmd": "ledger.py --selftest",
+      "ok": true,
+      "detail": "10/10 用例通过"
+    },
+    {
+      "kind": "selftest",
+      "name": "红线检查 redlines",
+      "cmd": "redlines.py --selftest",
+      "ok": true,
+      "detail": "29/29 用例通过"
+    },
+    {
+      "kind": "selftest",
+      "name": "重放验证 replay",
+      "cmd": "replay.py --selftest",
+      "ok": true,
+      "detail": "7/7 用例通过"
+    },
+    {
+      "kind": "audit",
+      "name": "红线审计（当前产物）",
+      "cmd": "redlines.py --audit",
+      "ok": true,
+      "detail": "共 15 项检查，0 项违规"
+    },
+    {
+      "kind": "audit",
+      "name": "策略编译一致性",
+      "cmd": "build_policy.py --check",
+      "ok": true,
+      "detail": "（--check 模式，未写盘。确认无误后跑 --write）"
+    },
+    {
+      "kind": "audit",
+      "name": "证据包重放",
+      "cmd": "replay.py --trace episodes/EP01_GLaS_demo/run_log.jsonl",
+      "ok": true,
+      "detail": "可重放：是"
+    },
+    {
+      "kind": "audit",
+      "name": "可信记分卡",
+      "cmd": "ledger.py --scorecard",
+      "ok": true,
+      "detail": "来源覆盖率 93.8%，16 条数字 / 11 个动作"
+    }
+  ],
+  "scorecard": {
+    "n_claims": 16,
+    "source_coverage": 0.9375,
+    "n_actions": 11,
+    "human_interventions": 5,
+    "destructive_actions": 5,
+    "destructive_without_backup": 0,
+    "judge_calls": 3
+  }
+}

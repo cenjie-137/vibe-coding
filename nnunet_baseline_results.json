@@ -1,0 +1,80 @@
+{
+  "DRIVE": {
+    "dataset_id": "071",
+    "protocol": "nnU-Net v2 内部 5 折交叉验证（像素级前景 Dice）",
+    "folds": {
+      "fold_0": 0.7763,
+      "fold_1": 0.8142,
+      "fold_2": 0.8172,
+      "fold_3": 0.8082,
+      "fold_4": 0.7792
+    },
+    "mean_dice": 0.799,
+    "submission": "DRIVE_nnunet_baseline_submission.zip (20 张二值 PNG, 1.png~20.png)",
+    "finished_at": "2026-09-28 11:53:00"
+  },
+  "GLAS": {
+    "dataset_id": "070",
+    "protocol": "nnU-Net v2 内部 5 折交叉验证（像素级前景 Dice）",
+    "folds": {
+      "fold_0": 0.9193,
+      "fold_1": 0.9253,
+      "fold_2": 0.9336,
+      "fold_3": 0.9211,
+      "fold_4": 0.9388
+    },
+    "mean_dice": 0.9276,
+    "finished_at": "2026-09-29 11:49:33",
+    "test_inference": {
+      "method": "nnUNetv2_predict -d 070 -c 2d -f 0 1 2 3 4 -chk checkpoint_final.pth（5 折 ensemble）",
+      "splits": { "testA": 60, "testB": 20 },
+      "n_images": 80,
+      "pixel_dice": {
+        "testA": 0.9276,
+        "testB": 0.8966,
+        "all": 0.9199,
+        "median": 0.9441,
+        "min": 0.6173
+      },
+      "worst_images": { "testA_14": 0.6173, "testB_14": 0.6181, "testB_16": 0.7326 }
+    },
+    "object_level_official": {
+      "protocol": "GLaS 官方对象级协议（https://glas.grand-challenge.org/Evaluation/）：最大重叠 1:1 对应；面积加权 + 数据集级池化；F1 判定 |S∩G| >= 0.5·|G|",
+      "testA": { "n": 60, "obj_dice": 0.8723, "obj_f1": 0.7739, "obj_hd": 67.31, "tp": 558, "fp": 213, "fn": 113 },
+      "testB": { "n": 20, "obj_dice": 0.8184, "obj_f1": 0.6113, "obj_hd": 118.85, "tp": 92, "fp": 87, "fn": 30 },
+      "all": { "n": 80, "obj_dice": 0.8567, "obj_f1": 0.7458, "obj_hd": 82.28, "tp": 650, "fp": 300, "fn": 143 },
+      "by_grade": {
+        "benign": { "obj_dice": 0.8955, "obj_f1": 0.8253, "obj_hd": 48.88 },
+        "malignant": { "obj_dice": 0.8219, "obj_f1": 0.6228, "obj_hd": 112.25 }
+      }
+    },
+    "postprocess_ablation": {
+      "note": "对预测做 3x3 开运算，去除 1px 级毛刺/假阳性碎片",
+      "raw": { "testA_obj_f1": 0.7739, "testB_obj_f1": 0.6113, "testA_obj_dice": 0.8723, "testB_obj_dice": 0.8184 },
+      "opening_1iter": { "testA_obj_f1": 0.8261, "testB_obj_f1": 0.6791, "testA_obj_dice": 0.8732, "testB_obj_dice": 0.8185 },
+      "opening_2iter": { "testA_obj_f1": 0.8457, "testB_obj_f1": 0.7054, "testA_obj_dice": 0.8737, "testB_obj_dice": 0.8183 },
+      "opening_3iter": { "testA_obj_f1": 0.8567, "testB_obj_f1": 0.7309, "testA_obj_dice": 0.8738, "testB_obj_dice": 0.8184 }
+    },
+    "convention_check": {
+      "note": "同一份 nnU-Net 预测在两种评估口径下的对象级 Dice，用于判断跨轨道可比性",
+      "official_area_weighted_dataset_pooled": { "testA": 0.8723, "testB": 0.8184 },
+      "per_image_simple_average": { "testA": 0.7507, "testB": 0.6544 }
+    },
+    "sanity_checks": {
+      "gt_source": "data/glas/masks 与官方 *_anno.bmp 二值化逐像素一致；实例标签数 == 4 连通域数，对象划分与官方实例一致",
+      "alignment": "预测与 GT 同尺寸、无需转置/翻转；testA_1 的预测与 testA_1 GT 的匹配度（0.862）高于与其他任何 GT",
+      "split_sizes": "train 85 / testA 60 / testB 20，与官方 Table 1 一致",
+      "generalization": "测试集像素 Dice 0.9199 vs 5 折 CV 0.9276，无分布断裂或泄漏迹象"
+    },
+    "caveats": [
+      "GLaS 官方 MATLAB 评估代码需 Warwick 登录，下载失败（evaluation_v6.zip 损坏），对象级三项指标为按官方 Evaluation 页公式的忠实复现，非官方代码输出。",
+      "Object Hausdorff 对假阳性小碎片极敏感：面积加权均值 testA 67.31，而未加权中位数仅 12.04 px（testB 中位数 146.39）。",
+      "nnU-Net 未做实例分离后处理，粘连腺体会并成单连通域，这是 ObjF1 偏低的主因。"
+    ],
+    "external_reference": {
+      "DRU-Net (IET IPR 2020)": "testA F1 0.828 / ObjDice 0.8695 / ObjHD 59.39；testB F1 0.5998 / ObjDice 0.7800 / ObjHD 150.65",
+      "TA-Net 论文汇总表": "SegNet F1 83.1 / ObjD 84.9 / ObjH 76.6；DCAN F1 81.4 / ObjD 83.9 / ObjH 102.9",
+      "conclusion": "本 nnU-Net 基线（testA 0.8723/0.7739/67.31、testB 0.8184/0.6113/118.85）落在已发表 GLaS 方法的正常区间内"
+    }
+  }
+}

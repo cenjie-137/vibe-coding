@@ -1,0 +1,293 @@
+# DATASETS — 数据集目录（人写）
+#
+# 这是"我们一共要处理哪些数据集"的唯一清单，也是 policy.json 里 targets 的来源。
+# 加一个数据集 = 在这里加一条 + 跑 `python build_policy.py --write`。不需要改任何代码。
+#
+# ── 字段说明 ──────────────────────────────────────────────────────
+#   task        任务名（= policy.json targets 的键，全局唯一，稳定不变）
+#   status      active（已就绪，可进判定） / preparing（管线就绪，基线待测） / planned（已列入，待核实）
+#   dim         2D / 3D
+#   modality    成像模态
+#   classes     类别数（含背景）
+#   metric      判定用的指标名（同 task 内唯一）
+#   subset      在哪个子集上比（testB / cv5 / val ...）
+#   convention  口径 id，必须来自下面 conventions 注册表（红线 R1）
+#   eval_script 官方协议评估脚本文件名；进 policy.json 的 eval.allowlist（红线 R5）
+#   l1          保底线数值（自家 nnU-Net v2 官方口径实测）；未核实填 null
+#   l2          冲刺线数值（已发表 SOTA / 榜前 50%）；未核实填 null
+#   l1_source   数字来源（红线 R2：无来源不得用于判定）
+#   l2_source   同上
+#   verified    该条的协议 + 基线数字是否已核实；false 时不得进 targets
+#   note        备注
+#
+# ⚠ 红线 R2：l1 / l2 只有在 verified: true 且带 source 时才允许填写。
+#   没有来源就先留 null —— 宁可空着，不许编。
+
+meta:
+  version: "1.1"
+  updated: "2026-10-08"
+  note: >
+    首批 15 个数据集。前 3 个（GLaS / DRIVE / PUMA）是本项目已有数据、已就绪；
+    其余 12 个是待启动的扩展位，协议与基线数字需 Step 0 逐一核实后才升级为 active。
+
+# ── 口径注册表（红线 R1 的受控词表）────────────────────────────────
+# 参与比较的数字必须同 metric + subset + convention；跨口径一律不可比。
+conventions:
+  official_object_level:
+    desc: 官方对象级 —— 1:1 最大重叠对应 + 面积加权 + 数据集级池化
+  pixel_level:
+    desc: 像素级 —— 逐图像素 Dice，多折交叉验证后取均值
+  official_micro_dice:
+    desc: 官方 micro Dice —— 数据集级池化（把所有像素/体素汇总后算），多类别
+  official_dice_hd95:
+    desc: 官方 Dice + HD95 双指标 —— 体积重叠 + 边界距离
+  official_instance_f1:
+    desc: 官方实例级 F1 —— 先做实例对应再做 TP/FP/FN 统计
+
+datasets:
+
+  # ══ 已就绪（active）════════════════════════════════════════════
+  - task: GLaS
+    status: active
+    dim: 2D
+    modality: histology_H&E
+    classes: 2
+    metric: testB_objDice
+    subset: testB
+    convention: official_object_level
+    eval_script: eval_glas_official.py
+    l1: 0.8184
+    l1_source: RESEARCH_LOG.md#nnunet-glas
+    l2: 0.842
+    l2_source: https://arxiv.org/abs/1910.10470
+    verified: true
+    note: >
+      起点数据集；框架验证用。L2 = U-Node (Pinckaers & Litjens, 2019) testB ObjDice 0.842，
+      来源 arXiv:1910.10470 Table 1（官方对象级口径）。
+      选它的理由：**该路线有可复现的开源代码**（ROUTE_POOL R05），能当复现锚点。
+      原 L2 = MILD-Net 0.836 于 2026-10-08 上移 —— MILD-Net 无官方代码，做不了锚点。
+
+  - task: DRIVE
+    status: active
+    dim: 2D
+    modality: retinal_fundus
+    classes: 2
+    metric: cv_dice
+    subset: cv5
+    convention: pixel_level
+    eval_script: null          # 目前用 nnU-Net 内置评估，官方协议脚本待补 → R5 会挡住
+    l1: 0.7990
+    l1_source: RESEARCH_LOG.md#nnunet-drive
+    l2: null
+    l2_source: null
+    verified: true
+    note: 榜前 50% 门槛需先确认榜单总条目数，故 L2 暂空（LLM 轨道目前 rank 86）
+
+  - task: PUMA
+    status: preparing
+    dim: 2D
+    modality: histology_H&E
+    classes: 6
+    metric: micro_dice
+    subset: val
+    convention: official_micro_dice
+    eval_script: null          # 官方评估器待补 → R5 会挡住它的评估记录进判定
+    l1: 0.5548
+    l1_source: RESEARCH_LOG.md#puma
+    l2: null
+    l2_source: null
+    verified: true
+    note: 基线已实测 0.5548（nnU-Net v2，官方 micro Dice）；补上官方评估脚本并进 allowlist 后即可转 active
+
+  # ══ 扩展位（planned）—— 协议与基线待 Step 0 核实 ════════════════
+  - task: ISIC2018
+    status: planned
+    dim: 2D
+    modality: dermoscopy
+    classes: 2
+    metric: null
+    subset: null
+    convention: null
+    eval_script: null
+    l1: null
+    l2: null
+    l1_source: null
+    l2_source: null
+    verified: false
+    note: 皮肤病变分割；官方 Jaccard 口径待核实
+
+  - task: KvasirSEG
+    status: planned
+    dim: 2D
+    modality: endoscopy
+    classes: 2
+    metric: null
+    subset: null
+    convention: null
+    eval_script: null
+    l1: null
+    l2: null
+    l1_source: null
+    l2_source: null
+    verified: false
+    note: 肠息肉分割；Dice 口径待核实
+
+  - task: MoNuSeg
+    status: planned
+    dim: 2D
+    modality: histology_H&E
+    classes: 2
+    metric: null
+    subset: null
+    convention: null
+    eval_script: null
+    l1: null
+    l2: null
+    l1_source: null
+    l2_source: null
+    verified: false
+    note: 细胞核分割；像素级 vs 实例级口径差异大，必须核实（R1）
+
+  - task: CHASEDB1
+    status: planned
+    dim: 2D
+    modality: retinal_fundus
+    classes: 2
+    metric: null
+    subset: null
+    convention: null
+    eval_script: null
+    l1: null
+    l2: null
+    l1_source: null
+    l2_source: null
+    verified: false
+    note: 视网膜血管分割；与 DRIVE 同模态，可做跨数据集泛化证据
+
+  - task: BUSI
+    status: planned
+    dim: 2D
+    modality: ultrasound
+    classes: 3
+    metric: null
+    subset: null
+    convention: null
+    eval_script: null
+    l1: null
+    l2: null
+    l1_source: null
+    l2_source: null
+    verified: false
+    note: 乳腺超声；小样本，适合做算力节俭的证据
+
+  - task: BEETLE
+    status: planned
+    dim: 2D
+    modality: histology_H&E_WSI
+    classes: 4
+    metric: null
+    subset: null
+    convention: null
+    eval_script: null
+    l1: null
+    l2: null
+    l1_source: null
+    l2_source: null
+    verified: false
+    note: 乳腺组织 4 类，全切片；数据准备中。已知对照 baseline 0.87（来源 RESEARCH_LOG.md，待核实口径）
+
+  - task: ISLES2022
+    status: planned
+    dim: 3D
+    modality: brain_MRI
+    classes: 3
+    metric: null
+    subset: null
+    convention: null
+    eval_script: null
+    l1: null
+    l2: null
+    l1_source: null
+    l2_source: null
+    verified: false
+    note: 缺血性卒中病灶；本人有参赛经验，3D 扩展首选
+
+  - task: BraTS2023
+    status: planned
+    dim: 3D
+    modality: brain_MRI
+    classes: 4
+    metric: null
+    subset: null
+    convention: null
+    eval_script: null
+    l1: null
+    l2: null
+    l1_source: null
+    l2_source: null
+    verified: false
+    note: 脑肿瘤多区域；本人做过 MOME，直接可复用
+
+  - task: LiTS
+    status: planned
+    dim: 3D
+    modality: abdominal_CT
+    classes: 3
+    metric: null
+    subset: null
+    convention: null
+    eval_script: null
+    l1: null
+    l2: null
+    l1_source: null
+    l2_source: null
+    verified: false
+    note: 肝脏 + 肝肿瘤；3D 大器官，验证管线在体数据上的表现
+
+  - task: KiTS2023
+    status: planned
+    dim: 3D
+    modality: abdominal_CT
+    classes: 4
+    metric: null
+    subset: null
+    convention: null
+    eval_script: null
+    l1: null
+    l2: null
+    l1_source: null
+    l2_source: null
+    verified: false
+    note: 肾脏 + 肿瘤 + 囊肿
+
+  - task: ACDC
+    status: planned
+    dim: 3D
+    modality: cardiac_MRI
+    classes: 4
+    metric: null
+    subset: null
+    convention: null
+    eval_script: null
+    l1: null
+    l2: null
+    l1_source: null
+    l2_source: null
+    verified: false
+    note: 心脏结构分割；小器官 + 运动伪影，难度补充
+
+  - task: SynapseBTCV
+    status: planned
+    dim: 3D
+    modality: abdominal_CT
+    classes: 14
+    metric: null
+    subset: null
+    convention: null
+    eval_script: null
+    l1: null
+    l2: null
+    l1_source: null
+    l2_source: null
+    verified: false
+    note: 腹部多器官；类别数最多，验证框架在长尾类别上的稳定性

@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>治理层第一步验收报告 · 可信自主分割 Agent</title>
+<style>
+  :root{
+    --ink:#12161c; --muted:#6b7280; --line:#e5e7eb; --bg:#f7f8fa; --card:#fff;
+    --accent:#1f6feb; --accent-soft:#eef4ff; --ok:#0f7b3f; --ok-soft:#eaf7ef;
+    --warn:#b45309; --warn-soft:#fdf4e7; --idle:#6b7280; --idle-soft:#f1f2f4;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);line-height:1.65;
+       font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;
+       -webkit-font-smoothing:antialiased}
+  .wrap{max-width:1080px;margin:0 auto;padding:0 24px 72px}
+  .mono{font-family:ui-monospace,SFMono-Regular,Consolas,"Courier New",monospace}
+
+  /* ── 头部 ── */
+  header{background:linear-gradient(160deg,#101722 0%,#1b2735 100%);color:#fff;
+         margin:0 -24px 36px;padding:44px 40px 40px}
+  header .tag{display:inline-block;font-size:12px;letter-spacing:.08em;
+              color:#9fb3c8;border:1px solid #33445c;border-radius:999px;padding:3px 12px;margin-bottom:16px}
+  header h1{margin:0 0 10px;font-size:27px;font-weight:650;letter-spacing:-.01em}
+  header p{margin:0;color:#a9b8c9;font-size:14px;max-width:760px}
+  header .meta{margin-top:22px;display:flex;gap:28px;flex-wrap:wrap;font-size:12.5px;color:#8fa3b8}
+  header .meta b{color:#e8eef5;font-weight:600}
+
+  /* ── 通用 ── */
+  h2{font-size:19px;margin:44px 0 6px;letter-spacing:-.01em}
+  h2 .n{color:var(--accent);font-weight:700;margin-right:8px}
+  .lead{color:var(--muted);font-size:13.5px;margin:0 0 18px;max-width:820px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:20px 22px}
+  .grid{display:grid;gap:14px}
+  .g2{grid-template-columns:1fr 1fr}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g4{grid-template-columns:repeat(4,1fr)}
+
+  /* ── KPI ── */
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .kpi .v{font-size:25px;font-weight:700;letter-spacing:-.02em;line-height:1.15}
+  .kpi .v small{font-size:13px;font-weight:500;color:var(--muted)}
+  .kpi .l{font-size:12px;color:var(--muted);margin-top:3px}
+  .kpi.good .v{color:var(--ok)}
+
+  /* ── 表 ── */
+  table{width:100%;border-collapse:collapse;background:var(--card);
+        border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:13px}
+  th,td{padding:9px 13px;text-align:left;border-bottom:1px solid #f0f1f3;vertical-align:top}
+  th{background:#fafbfc;font-weight:600;font-size:11.5px;color:#4b5563;
+     letter-spacing:.03em;text-transform:uppercase;white-space:nowrap}
+  tr:last-child td{border-bottom:none}
+  td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+
+  /* ── 徽章 ── */
+  .b{display:inline-block;font-size:11.5px;font-weight:600;padding:2px 9px;border-radius:999px;white-space:nowrap}
+  .b-active{background:var(--ok-soft);color:var(--ok)}
+  .b-prep{background:var(--warn-soft);color:var(--warn)}
+  .b-plan{background:var(--idle-soft);color:var(--idle)}
+  .b-ok{background:var(--ok-soft);color:var(--ok)}
+  .b-info{background:var(--accent-soft);color:var(--accent)}
+
+  /* ── 对比表 ── */
+  .cmp th:first-child{width:120px}
+  .cmp td:first-child{color:var(--muted);font-weight:600;font-size:12.5px}
+  .cmp .ours{background:#fbfdff}
+
+  /* ── 证据卡 ── */
+  .ev{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:18px 20px;
+      display:flex;flex-direction:column;gap:8px}
+  .ev h3{margin:0;font-size:14.5px}
+  .ev .q{color:var(--muted);font-size:12.5px;min-height:36px}
+  .ev code{display:block;background:#f6f7f9;border:1px solid var(--line);border-radius:7px;
+           padding:8px 10px;font-size:11.5px;color:#374151;overflow-x:auto;white-space:nowrap}
+
+  /* ── 决策链 ── */
+  .chain{display:flex;gap:0;align-items:stretch;margin:6px 0 4px;flex-wrap:wrap}
+  .step{flex:1;min-width:150px;border:1px solid var(--line);border-right:none;padding:11px 13px;background:#fff}
+  .step:first-child{border-radius:10px 0 0 10px}
+  .step:last-child{border-radius:0 10px 10px 0;border-right:1px solid var(--line)}
+  .step .i{font-size:11px;color:var(--muted)}
+  .step .d{font-size:13px;font-weight:650;margin:2px 0}
+  .step .r{font-size:11px;color:var(--muted);word-break:break-all}
+  .step.stop{background:var(--ok-soft);border-color:#bfe3cc}
+  .step.stop .d{color:var(--ok)}
+
+  ul.tight{margin:8px 0 0;padding-left:20px;font-size:13.5px}
+  ul.tight li{margin-bottom:5px}
+  .note{font-size:12px;color:var(--muted);margin-top:12px}
+  footer{margin-top:52px;padding-top:20px;border-top:1px solid var(--line);
+         font-size:12px;color:var(--muted)}
+  .hash{background:#101722;color:#7ee0a1;border-radius:8px;padding:10px 14px;
+        font-size:12px;overflow-x:auto;white-space:nowrap}
+  @media(max-width:820px){.g3,.g4{grid-template-columns:1fr 1fr}.g2{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="tag">GOVERNANCE LAYER · STEP 1 ACCEPTANCE</div>
+  <h1>治理层第一步验收报告</h1>
+  <p>把"让 AI 自动刷分"升级为"让 AI 的每一步都可被第三方查账"——
+     判定器、红线断言、溯源账本、可重放验证四件套已全部落地并通过对抗测试。</p>
+  <div class="meta">
+    <span>生成时间 <b>2026-10-08 14:57</b></span>
+    <span>policy 版本 <b>v1.3</b></span>
+    <span>验收结果 <b>8 / 8 通过</b></span>
+    <span>对抗用例 <b>47 条全过</b></span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <!-- ══ 1 一句话 ══ -->
+  <h2><span class="n">01</span>我们在做什么</h2>
+  <p class="lead">人只写一份规则文件，之后 Agent 自主完成「查文献 → 复现 → 改进 → 判断该不该换路子 → 换下一条」的完整循环，
+     中途不打断，直到达标或路线池耗尽。重点不是跑得久、跑得高，而是<b>跑得可信、跑得省</b>。</p>
+
+  <div class="grid g3">
+    <div class="card">
+      <div style="font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.03em">人做什么</div>
+      <div style="font-size:14px;margin-top:6px">只写 <span class="mono">AUTONOMY_POLICY.md</span> 一份规则（目标 / 阈值 / 红线 / 终止条件）。写完退出回路。</div>
+    </div>
+    <div class="card">
+      <div style="font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.03em">Agent 做什么</div>
+      <div style="font-size:14px;margin-top:6px">按规则自主跑完 8 步流水线，每一步都留痕；判定由代码给出，不由模型"感觉"。</div>
+    </div>
+    <div class="card">
+      <div style="font-size:12px;color:var(--muted);font-weight:600;letter-spacing:.03em">凭什么信它</div>
+      <div style="font-size:14px;margin-top:6px">把当时的<b>状态快照</b>存下来，事后用同一个判定器再判一遍。判出一样 → 说明确实是规则在决定，不是临场发挥。</div>
+    </div>
+  </div>
+
+  <!-- ══ 2 不同点 ══ -->
+  <h2><span class="n">02</span>与对标工作的不同点</h2>
+  <p class="lead">对标工作（Camyla，中科大 / 上海 AI Lab，2026）的核心是<b>规模</b>：让 Agent 长时间跑、堆算力、冲指标。
+     我们回答另一个问题：<b>它跑出来的结果，我凭什么信？</b>　来源：本项目《前沿文献调研报告》。</p>
+
+  <table class="cmp">
+    <thead><tr><th>维度</th><th>Camyla（对标）</th><th>我们</th></tr></thead>
+    <tbody>
+      <tr><td>关注点</td><td>跑得久、跑得高</td><td class="ours"><b>跑得可信、跑得省</b></td></tr>
+      <tr><td>判定方式</td><td>结果导向，判定依赖模型</td><td class="ours"><b>判定逻辑写死在代码里</b>，换会话换模型结果一致</td></tr>
+      <tr><td>数字可信</td><td>报出来即可</td><td class="ours"><b>每个数字都要能追问"从哪来的"</b>，无来源直接作废</td></tr>
+      <tr><td>算力定位</td><td>规模导向</td><td class="ours"><b>消费级算力（32G 单卡）</b>下的节俭自主</td></tr>
+      <tr><td>交付形态</td><td>一套方法 / 结果</td><td class="ours"><b>治理协议 + 参考实现</b>（别人可拿去复跑）</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ══ 3 创新点 ══ -->
+  <h2><span class="n">03</span>三个创新点：把口号变成机制</h2>
+  <p class="lead">"可信"最容易停留在口号。这三件事把它变成<b>能跑、能复现、能被第三方验证</b>的东西。</p>
+
+  <div class="grid g3">
+    <div class="ev">
+      <span class="b b-info">创新点 1</span>
+      <h3>红线变成能跑的代码</h3>
+      <div class="q">把"不许改口径、不许编数字、不许自己改规则"这些原则，变成 9 个当场能审问 Agent 的函数。过不了就是违规，不靠自觉。</div>
+      <code>python redlines.py --selftest</code>
+      <div class="note" style="margin:0">23 条对抗用例（每条红线一个应通过、一个应拦下）</div>
+    </div>
+    <div class="ev">
+      <span class="b b-info">创新点 2</span>
+      <h3>溯源账本</h3>
+      <div class="q">每个数字、每个动作都留痕，且<b>只许追加、不许改写</b>——已写下的痕迹无法被 Agent 事后"美化"。论文里"来源覆盖率"就是一硬指标。</div>
+      <code>python ledger.py --scorecard</code>
+      <div class="note" style="margin:0">当前来源覆盖率 <b>87.5%</b>（7/8 条数字带可核实来源）</div>
+    </div>
+    <div class="ev">
+      <span class="b b-info">创新点 3</span>
+      <h3>可重放判定</h3>
+      <div class="q">给定同样的状态和规则，判定器必须复现出<b>一模一样</b>的决策序列。这是"可信"两个字的技术证据。</div>
+      <code>python replay.py --trace ...</code>
+      <div class="note" style="margin:0">硬比对 decision+reason；链哈希连文案改动都能检出</div>
+    </div>
+  </div>
+
+  <!-- ══ 4 数据集目录 ══ -->
+  <h2><span class="n">04</span>数据集目录：从 2 个扩展到 15 个</h2>
+  <p class="lead">这一步解决你说的"不该只做这么点数据集"。做法是：<b>数据集目录是手写的，policy.json 是算出来的</b>——
+     以后加数据集只改一个 YAML 文件，再跑一条命令，<b>不需要改任何代码</b>。</p>
+
+  <div class="grid g4" style="margin-bottom:18px">
+    <div class="kpi"><div class="v">15</div><div class="l">数据集总数</div></div>
+    <div class="kpi good"><div class="v">2</div><div class="l">active（已进判定）</div></div>
+    <div class="kpi"><div class="v" style="color:var(--warn)">1</div><div class="l">preparing（缺官方评估脚本）</div></div>
+    <div class="kpi"><div class="v" style="color:var(--idle)">12</div><div class="l">planned（待核实）</div></div>
+  </div>
+
+  <table>
+    <thead><tr>
+      <th>数据集</th><th>状态</th><th>维度</th><th>模态</th><th>类别</th>
+      <th>判定指标</th><th>L1 保底</th><th>L2 冲刺</th>
+    </tr></thead>
+    <tbody>
+      <tr>
+        <td><b>GLaS</b></td><td><span class="b b-active">active</span></td><td>2D</td><td>病理 H&amp;E</td>
+        <td class="num">2</td><td class="mono">testB_objDice</td>
+        <td class="num"><b>0.8184</b></td><td class="num"><b>0.836</b></td>
+      </tr>
+      <tr>
+        <td><b>DRIVE</b></td><td><span class="b b-active">active</span></td><td>2D</td><td>眼底视网膜</td>
+        <td class="num">2</td><td class="mono">cv_dice</td>
+        <td class="num"><b>0.7990</b></td><td class="num" style="color:var(--muted)">待定</td>
+      </tr>
+      <tr>
+        <td><b>PUMA</b></td><td><span class="b b-prep">preparing</span></td><td>2D</td><td>病理 H&amp;E</td>
+        <td class="num">6</td><td class="mono">micro_dice</td>
+        <td class="num"><b>0.5548</b></td><td class="num" style="color:var(--muted)">待定</td>
+      </tr>
+      <tr>
+        <td>ISIC2018</td><td><span class="b b-plan">planned</span></td><td>2D</td><td>皮肤镜</td>
+        <td class="num">2</td><td class="mono" style="color:var(--muted)">待核实</td>
+        <td class="num" style="color:var(--muted)">—</td><td class="num" style="color:var(--muted)">—</td>
+      </tr>
+      <tr>
+        <td>KvasirSEG</td><td><span class="b b-plan">planned</span></td><td>2D</td><td>内窥镜</td>
+        <td class="num">2</td><td class="mono" style="color:var(--muted)">待核实</td>
+        <td class="num" style="color:var(--muted)">—</td><td class="num" style="color:var(--muted)">—</td>
+      </tr>
+      <tr>
+        <td>MoNuSeg</td><td><span class="b b-plan">planned</span></td><td>2D</td><td>病理 H&amp;E</td>
+        <td class="num">2</td><td class="mono" style="color:var(--muted)">待核实</td>
+        <td class="num" style="color:var(--muted)">—</td><td class="num" style="color:var(--muted)">—</td>
+      </tr>
+      <tr>
+        <td>CHASEDB1</td><td><span class="b b-plan">planned</span></td><td>2D</td><td>眼底视网膜</td>
+        <td class="num">2</td><td class="mono" style="color:var(--muted)">待核实</td>
+        <td class="num" style="color:var(--muted)">—</td><td class="num" style="color:var(--muted)">—</td>
+      </tr>
+      <tr>
+        <td>BUSI</td><td><span class="b b-plan">planned</span></td><td>2D</td><td>超声</td>
+        <td class="num">3</td><td class="mono" style="color:var(--muted)">待核实</td>
+        <td class="num" style="color:var(--muted)">—</td><td class="num" style="color:var(--muted)">—</td>
+      </tr>
+      <tr>
+        <td>BEETLE</td><td><span class="b b-plan">planned</span></td><td>2D</td><td>病理 H&amp;E 全切片</td>
+        <td class="num">4</td><td class="mono" style="color:var(--muted)">待核实</td>
+        <td class="num" style="color:var(--muted)">—</td><td class="num" style="color:var(--muted)">—</td>
+      </tr>
+      <tr>
+        <td>ISLES2022</td><td><span class="b b-plan">planned</span></td><td>3D</td><td>脑 MRI</td>
+        <td class="num">3</td><td class="mono" style="color:var(--muted)">待核实</td>
+        <td class="num" style="color:var(--muted)">—</td><td class="num" style="color:var(--muted)">—</td>
+      </tr>
+      <tr>
+        <td>BraTS2023</td><td><span class="b b-plan">planned</span></td><td>3D</td><td>脑 MRI</td>
+        <td class="num">4</td><td class="mono" style="color:var(--muted)">待核实</td>
+        <td class="num" style="color:var(--muted)">—</td><td class="num" style="color:var(--muted)">—</td>
+      </tr>
+      <tr>
+        <td>LiTS</td><td><span class="b b-plan">planned</span></td><td>3D</td><td>腹部 CT</td>
+        <td class="num">3</td><td class="mono" style="color:var(--muted)">待核实</td>
+        <td class="num" style="color:var(--muted)">—</td><td class="num" style="color:var(--muted)">—</td>
+      </tr>
+      <tr>
+        <td>KiTS2023</td><td><span class="b b-plan">planned</span></td><td>3D</td><td>腹部 CT</td>
+        <td class="num">4</td><td class="mono" style="color:var(--muted)">待核实</td>
+        <td class="num" style="color:var(--muted)">—</td><td class="num" style="color:var(--muted)">—</td>
+      </tr>
+      <tr>
+        <td>ACDC</td><td><span class="b b-plan">planned</span></td><td>3D</td><td>心脏 MRI</td>
+        <td class="num">4</td><td class="mono" style="color:var(--muted)">待核实</td>
+        <td class="num" style="color:var(--muted)">—</td><td class="num" style="color:var(--muted)">—</td>
+      </tr>
+      <tr>
+        <td>SynapseBTCV</td><td><span class="b b-plan">planned</span></td><td>3D</td><td>腹部 CT</td>
+        <td class="num">14</td><td class="mono" style="color:var(--muted)">待核实</td>
+        <td class="num" style="color:var(--muted)">—</td><td class="num" style="color:var(--muted)">—</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="card" style="margin-top:14px;border-left:3px solid var(--warn)">
+    <div style="font-size:13.5px"><b>为什么 planned 不直接进判定？</b>
+      判定器需要"保底线"才能工作。没有实测基线的数据集进去只会触发 <span class="mono">UNKNOWN_TASK</span> 停止。
+      所以"想做的"和"能判的"必须分开——<b>这是诚实的边界，不是功能缺失</b>。
+      红线 R2 也要求：任何基线数字没有来源就先留空，宁可空着，不许编。</div>
+  </div>
+
+  <!-- ══ 5 三层证据 ══ -->
+  <h2><span class="n">05</span>治理层：可信性的三层证据</h2>
+  <p class="lead">每一层都配一条可复跑的命令。审稿人（或三个月后的你自己）跑一遍，就能看到同样的结果。</p>
+
+  <table>
+    <thead><tr><th>层</th><th>组件</th><th>回答什么问题</th><th>复跑命令</th></tr></thead>
+    <tbody>
+      <tr>
+        <td><span class="b b-info">规则可执行</span></td><td><b>redlines.py</b></td>
+        <td>Agent 违规了没有？</td>
+        <td class="mono" style="font-size:12px">python redlines.py --selftest / --audit</td>
+      </tr>
+      <tr>
+        <td><span class="b b-info">数字可溯源</span></td><td><b>ledger.py</b></td>
+        <td>这个数字从哪来的？</td>
+        <td class="mono" style="font-size:12px">python ledger.py --scorecard</td>
+      </tr>
+      <tr>
+        <td><span class="b b-info">判定可重放</span></td><td><b>replay.py</b></td>
+        <td>它真是按规则判的，还是临场发挥？</td>
+        <td class="mono" style="font-size:12px">python replay.py --trace autorun/episodes/…</td>
+      </tr>
+      <tr>
+        <td><span class="b b-ok">一键验收</span></td><td><b>acceptance.py</b></td>
+        <td>以上全部，跑一遍要多久？</td>
+        <td class="mono" style="font-size:12px">python autorun/acceptance.py</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- ══ 6 验收结果 ══ -->
+  <h2><span class="n">06</span>验收结果</h2>
+  <p class="lead">47 条对抗用例全过、10 项产物审计零违规。注意：这些用例里有相当一部分是<b>"应该被判失败"的用例</b>——
+     能拦住它们，才说明红线是真的在生效。</p>
+
+  <div class="grid g4" style="margin-bottom:16px">
+    <div class="kpi good"><div class="v">8<small> / 8</small></div><div class="l">检查项通过</div></div>
+    <div class="kpi good"><div class="v">47<small> / 47</small></div><div class="l">对抗用例通过</div></div>
+    <div class="kpi good"><div class="v">0</div><div class="l">红线审计违规</div></div>
+    <div class="kpi good"><div class="v">0</div><div class="l">无备份的破坏性操作</div></div>
+  </div>
+
+  <table>
+    <thead><tr><th>类型</th><th>组件</th><th>结果</th><th>说明</th></tr></thead>
+    <tbody>
+      <tr><td>自检</td><td>判定器 judge</td><td><span class="b b-ok">通过</span></td><td class="num">9 / 9 用例</td></tr>
+      <tr><td>自检</td><td>溯源账本 ledger</td><td><span class="b b-ok">通过</span></td><td class="num">10 / 10 用例</td></tr>
+      <tr><td>自检</td><td>红线检查 redlines</td><td><span class="b b-ok">通过</span></td><td class="num">23 / 23 用例</td></tr>
+      <tr><td>自检</td><td>重放验证 replay</td><td><span class="b b-ok">通过</span></td><td class="num">5 / 5 用例</td></tr>
+      <tr><td>审计</td><td>红线审计（当前产物）</td><td><span class="b b-ok">通过</span></td><td>10 项检查，0 项违规</td></tr>
+      <tr><td>审计</td><td>策略编译一致性</td><td><span class="b b-ok">通过</span></td><td>目录与 policy.json 完全一致</td></tr>
+      <tr><td>审计</td><td>证据包重放</td><td><span class="b b-ok">通过</span></td><td>可重放：是</td></tr>
+      <tr><td>审计</td><td>可信记分卡</td><td><span class="b b-ok">通过</span></td><td>来源覆盖率 87.5%，8 条数字 / 2 个动作</td></tr>
+    </tbody>
+  </table>
+
+  <!-- ══ 7 可重放证据包 ══ -->
+  <h2><span class="n">07</span>可重放证据包：一次完整轨迹</h2>
+  <p class="lead">下面是 <span class="mono">autorun/episodes/EP01_GLaS_demo/</span> 里 5 条决策的完整链。
+     每条都带当时的 <span class="mono">state_snapshot</span>；拿它 + 同一个 policy 重跑，5 条全部一致。</p>
+
+  <div class="chain">
+    <div class="step"><div class="i">决策 1</div><div class="d">continue</div><div class="r">IN_PROGRESS</div></div>
+    <div class="step"><div class="i">决策 2</div><div class="d">continue</div><div class="r">IN_PROGRESS</div></div>
+    <div class="step"><div class="i">决策 3</div><div class="d">continue</div><div class="r">IN_PROGRESS</div></div>
+    <div class="step"><div class="i">决策 4 · best=0.820</div><div class="d">continue</div><div class="r">L1_REACHED_KEEP_PUSHING</div></div>
+    <div class="step stop"><div class="i">决策 5 · best=0.840</div><div class="d">stop</div><div class="r">SUCCESS_L2</div></div>
+  </div>
+
+  <div style="margin-top:16px">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:6px">决策链哈希（同样的输入必须得到同样的哈希）</div>
+    <div class="hash mono">sha256:1e42a5ccbf4df1aa6418f6d19fac5231</div>
+  </div>
+
+  <div class="card" style="margin-top:14px">
+    <div style="font-size:13.5px"><b>为什么这个哈希重要：</b>
+      论文里报一个哈希，任何人拉下代码跑一遍，哈希对得上就说明整条决策链没被改过。
+      我们对"改过"的定义很严——硬比对 <span class="mono">decision + reason</span> 两层，
+      而链哈希连 <span class="mono">detail</span> 文案都算进去，<b>连改文案都会被检出</b>。
+      自检里专门放了一条"篡改留痕"用例，验证它一定会被发现。</div>
+  </div>
+
+  <div class="card" style="margin-top:12px;border-left:3px solid var(--ok)">
+    <div style="font-size:13.5px"><b>一个刚被验证出来的好性质：</b>
+      本次 policy 从 <span class="mono">v1.2</span> 升到 <span class="mono">v1.3</span>（新增 BEETLE、回填 PUMA 基线），
+      但这条 GLaS 决策链的哈希<b>没有变</b>。原因是哈希算的是"决策序列"，不是配置文件版本——
+      规则改了但只要不影响这个任务，判定就不该变。反过来，<b>一旦规则改动真的影响了判定，哈希必然变</b>。
+      这正是我们想要的语义。</div>
+  </div>
+
+  <!-- ══ 8 开口与待办 ══ -->
+  <h2><span class="n">08</span>遗留开口（已明确记录，不掩盖）</h2>
+  <table>
+    <thead><tr><th>#</th><th>开口</th><th>影响</th><th>怎么关掉</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="num">1</td>
+        <td>R01 / R02 路线的代码链接仍是占位符（<span class="mono">code_verified: false</span>）</td>
+        <td>红线审计已把它们标为 <b>confidence: low</b>，暂不能作为锚点路线</td>
+        <td>跑 Step 0：逐个核实论文与开源链接，回填后改 <span class="mono">code_verified: true</span></td>
+      </tr>
+      <tr>
+        <td class="num">2</td>
+        <td>PUMA / DRIVE 缺官方协议评估脚本</td>
+        <td>红线 R5 会挡住它们的评估记录进判定（PUMA 因此停在 <span class="mono">preparing</span>）</td>
+        <td>补齐官方协议脚本，加入 <span class="mono">policy.json</span> 的 eval 白名单</td>
+      </tr>
+      <tr>
+        <td class="num">3</td>
+        <td>BEETLE 协议与基线未核实</td>
+        <td>不进 targets；日志里那个 0.87 对照值口径未确认</td>
+        <td>跑 Step 0：核实官方指标口径，实测自家 nnU-Net 基线后回填</td>
+      </tr>
+      <tr>
+        <td class="num">4</td>
+        <td>规则文件改动尚未 git commit</td>
+        <td>违反红线 R7 的"改完必须提交"要求</td>
+        <td>人工 <span class="mono">git commit</span>，message 写明新增了哪些数据集</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="card" style="margin-top:14px;border-left:3px solid var(--accent)">
+    <div style="font-size:13.5px"><b>本步已同步的文档：</b>
+      <span class="mono">AUTONOMY_POLICY.md</span> 升至 v1.3（新增第 0 节数据集目录、R4 措辞更新）、
+      <span class="mono">AUTONOMY_DESIGN.md</span>（文件架构、落地顺序、新增第 11 节治理层说明）、
+      <span class="mono">policy.json</span> 由 <span class="mono">datasets.yaml</span> 编译生成（v1.3）。</div>
+  </div>
+
+  <!-- ══ 9 下一步 ══ -->
+  <h2><span class="n">09</span>下一步</h2>
+  <ul class="tight">
+    <li><b>Step 0（补齐路线池）</b>——核实 R01/R02 的论文与开源链接，把 <span class="mono">code_verified</span> 打开。这一步不做，后面复现就没有锚点。</li>
+    <li><b>Step 2（跑通全循环）</b>——用 GLaS 现有数据真跑一遍「复现 → 改进 → 判定 → 换路线」，验证 <span class="mono">judge.py</span> 在真实指标流上判得对。</li>
+    <li><b>逐步把 preparing / planned 转成 active</b>——补官方评估脚本 + 实测基线，每转一个就把 15 个数据集的覆盖率往前推一格。</li>
+    <li><b>真实 episode 替换 demo</b>——<span class="mono">EP01</span> 目前是脚本驱动的示例轨迹；跑通后换成真实运行的证据包。</li>
+  </ul>
+
+  <footer>
+    <div>复现全部结果：<span class="mono">python autorun/acceptance.py --html</span>　｜　
+      原始数据：<span class="mono">autorun/acceptance_report.json</span>　｜　
+      规则契约：<span class="mono">AUTONOMY_POLICY.md</span>（v1.3）</div>
+    <div style="margin-top:6px">本报告所有数字均由本地脚本生成，未使用任何手工填写的估计值。</div>
+  </footer>
+
+</div>
+</body>
+</html>

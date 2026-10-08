@@ -12,6 +12,7 @@ import cv2
 import numpy as np
 import torch
 from PIL import Image
+from scipy import ndimage
 from sklearn.model_selection import StratifiedKFold
 from torch.utils.data import DataLoader, Dataset
 
@@ -24,6 +25,59 @@ def mask_to_contour(mask, ksize=3):
     dilated = cv2.dilate(mask_u8, kernel)
     eroded = cv2.erode(mask_u8, kernel)
     return (dilated - eroded) > 0
+
+
+def seg_to_hv(seg):
+    """从增强后的二值前景图生成 HoVer 距离图 (2,H,W)：每像素到所属腺体质心的像素距离。
+
+    用整图全局最大距离做统一归一化（而非逐实例归一化），保证不同大小的腺体尺度一致，
+    使方向场梯度能量在粘连边界处形成尺度一致的切割山脊。背景=0。
+    通道0=dy（行方向），通道1=dx（列方向），与 GlandUNet.dist_head 一致。
+    """
+    seg_bin = (seg > 0.5)
+    hv = np.zeros((2,) + seg_bin.shape, dtype=np.float32)
+    lab, n = ndimage.label(seg_bin)
+    if n == 0:
+        return hv
+    for i in range(1, n + 1):
+        m = lab == i
+        ys, xs = np.nonzero(m)
+        cy = float(ys.mean())
+        cx = float(xs.mean())
+        hv[0, ys, xs] = (ys - cy).astype(np.float32)
+        hv[1, ys, xs] = (xs - cx).astype(np.float32)
+    gmax = float(np.sqrt((hv[0] ** 2 + hv[1] ** 2).max()))
+    if gmax > 1e-6:
+        hv /= gmax
+    return hv
+
+
+def letterbox_resize(arr, target_size, interp):
+    """保持纵横比缩放到长边=target_size，置中 pad 到 target_size×target_size。
+
+    arr: (H, W) 或 (H, W, C)；返回 (padded, geom)。geom 记录 pad/新尺寸，供推理端裁剪回原图。
+    """
+    H, W = arr.shape[:2]
+    scale = target_size / max(H, W)
+    new_h = int(round(H * scale))
+    new_w = int(round(W * scale))
+    resized = cv2.resize(arr, (new_w, new_h), interpolation=interp)
+    pad_h = target_size - new_h
+    pad_w = target_size - new_w
+    pad_top = pad_h // 2
+    pad_bottom = pad_h - pad_top
+    pad_left = pad_w // 2
+    pad_right = pad_w - pad_left
+    if resized.ndim == 3:
+        padded = np.pad(resized, ((pad_top, pad_bottom), (pad_left, pad_right), (0, 0)),
+                        mode='constant', constant_values=0)
+    else:
+        padded = np.pad(resized, ((pad_top, pad_bottom), (pad_left, pad_right)),
+                        mode='constant', constant_values=0)
+    geom = {'new_h': new_h, 'new_w': new_w,
+            'pad_top': pad_top, 'pad_bottom': pad_bottom,
+            'pad_left': pad_left, 'pad_right': pad_right}
+    return padded, geom
 
 
 def augment_glas(img, seg, contour):
@@ -81,27 +135,22 @@ class GLASDataset(Dataset):
         seg = (mask > 0)
         contour = mask_to_contour(mask)
 
-        img = np.array(
-            img.resize((self.target_size, self.target_size), Image.BILINEAR),
-            dtype=np.float32,
-        ) / 255.0
-        seg = cv2.resize(
-            seg.astype(np.uint8), (self.target_size, self.target_size),
-            interpolation=cv2.INTER_NEAREST,
-        ).astype(np.float32)
-        contour = cv2.resize(
-            contour.astype(np.uint8), (self.target_size, self.target_size),
-            interpolation=cv2.INTER_NEAREST,
-        ).astype(np.float32)
+        img = np.array(img, dtype=np.float32) / 255.0
+        img, _ = letterbox_resize(img, self.target_size, cv2.INTER_LINEAR)
+        seg, _ = letterbox_resize(seg.astype(np.float32), self.target_size, cv2.INTER_NEAREST)
+        contour, _ = letterbox_resize(contour.astype(np.float32), self.target_size, cv2.INTER_NEAREST)
 
         if self.augment:
             img, seg, contour = augment_glas(img, seg, contour)
+
+        dist = seg_to_hv(seg)
 
         img = np.ascontiguousarray(np.transpose(img, (2, 0, 1)).astype(np.float32))
         return {
             'image': torch.from_numpy(img),
             'seg': torch.from_numpy(np.ascontiguousarray(seg)),
             'contour': torch.from_numpy(np.ascontiguousarray(contour)),
+            'dist': torch.from_numpy(np.ascontiguousarray(dist)),
             'file_id': fname,
         }
 

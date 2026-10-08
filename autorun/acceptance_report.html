@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<title>治理层第一步验收报告</title>
+<style>
+ body{font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;margin:0;padding:32px;
+      background:#f6f7f9;color:#1a1d21;line-height:1.6}
+ .wrap{max-width:1000px;margin:0 auto}
+ h1{font-size:24px;margin:0 0 4px} .sub{color:#6b7280;font-size:13px;margin-bottom:24px}
+ .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+ .kpi{background:#fff;border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px}
+ .kpi .v{font-size:22px;font-weight:700} .kpi .l{font-size:12px;color:#6b7280}
+ table{width:100%;border-collapse:collapse;background:#fff;border:1px solid #e5e7eb;
+        border-radius:10px;overflow:hidden;font-size:13px}
+ th,td{padding:9px 12px;text-align:left;border-bottom:1px solid #f0f1f3}
+ th{background:#fafbfc;font-weight:600;font-size:12px;color:#4b5563}
+ tr:last-child td{border-bottom:none}
+ .ok{color:#0f7b3f;font-weight:600} .bad{color:#b91c1c;font-weight:600}
+ .mono{font-family:ui-monospace,Consolas,monospace;font-size:12px;color:#4b5563}
+ .note{margin-top:20px;font-size:12px;color:#6b7280}
+</style></head><body><div class="wrap">
+<h1>治理层第一步验收报告</h1>
+<div class="sub">生成时间 2026-10-08T16:14:54+08:00 ｜ policy 版本 1.5 ｜
+命令 <span class="mono">python autorun/acceptance.py</span></div>
+<div class="kpis">
+ <div class="kpi"><div class="v">8/8</div><div class="l">检查项通过</div></div>
+ <div class="kpi"><div class="v">12</div><div class="l">账本数字条数</div></div>
+ <div class="kpi"><div class="v">91.7%</div><div class="l">来源覆盖率</div></div>
+ <div class="kpi"><div class="v">0</div><div class="l">无备份的破坏性操作</div></div>
+</div>
+<table><thead><tr><th>类型</th><th>组件</th><th>结果</th><th>命令</th><th>说明</th></tr></thead>
+<tbody><tr><td>自检</td><td>判定器 judge</td><td class="ok">通过</td><td class="mono">judge.py --selftest</td><td>11/11 用例通过</td></tr>
+<tr><td>自检</td><td>溯源账本 ledger</td><td class="ok">通过</td><td class="mono">ledger.py --selftest</td><td>10/10 用例通过</td></tr>
+<tr><td>自检</td><td>红线检查 redlines</td><td class="ok">通过</td><td class="mono">redlines.py --selftest</td><td>27/27 用例通过</td></tr>
+<tr><td>自检</td><td>重放验证 replay</td><td class="ok">通过</td><td class="mono">replay.py --selftest</td><td>7/7 用例通过</td></tr>
+<tr><td>审计</td><td>红线审计（当前产物）</td><td class="ok">通过</td><td class="mono">redlines.py --audit</td><td>共 15 项检查，0 项违规</td></tr>
+<tr><td>审计</td><td>策略编译一致性</td><td class="ok">通过</td><td class="mono">build_policy.py --check</td><td>（--check 模式，未写盘。确认无误后跑 --write）</td></tr>
+<tr><td>审计</td><td>证据包重放</td><td class="ok">通过</td><td class="mono">replay.py --trace episodes/EP01_GLaS_demo/run_log.jsonl</td><td>可重放：是</td></tr>
+<tr><td>审计</td><td>可信记分卡</td><td class="ok">通过</td><td class="mono">ledger.py --scorecard</td><td>来源覆盖率 91.7%，12 条数字 / 6 个动作</td></tr></tbody></table>
+<div class="note">本报告由 <span class="mono">acceptance.py</span> 自动生成，数据来源
+ <span class="mono">autorun/acceptance_report.json</span>。所有数字均可在本地复跑得到相同结果。</div>
+</div></body></html>

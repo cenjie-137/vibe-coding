@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>GLaS 腺体分割 · 版本结果对比</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --ink: #1a1a1a;
+    --muted: #6b7280;
+    --line: #e5e7eb;
+    --head-bg: #f5f5f5;
+    --good: #e8f5e9;
+    --good-ink: #1b8a2f;
+    --warn: #fef2f2;
+    --warn-ink: #d32f2f;
+    --blue: #2563eb;
+    --blue-bg: #dbeafe;
+    --target: #16a34a;
+    --baseline: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", "Microsoft YaHei", system-ui, -apple-system, sans-serif;
+    color: var(--ink);
+    background: #f7f8fa;
+    line-height: 1.6;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 32px 24px 64px; }
+  h1 { font-size: 24px; margin: 0 0 4px; letter-spacing: .5px; }
+  .sub { color: var(--muted); margin: 0 0 20px; font-size: 14px; }
+  .summary {
+    background: #eef4ff;
+    border-left: 4px solid var(--blue);
+    padding: 14px 16px;
+    border-radius: 6px;
+    font-size: 14.5px;
+    margin-bottom: 24px;
+  }
+  .summary b { color: var(--blue); }
+  .card {
+    background: var(--bg);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 20px 22px;
+    margin-bottom: 24px;
+  }
+  .card h2 { font-size: 16px; margin: 0 0 16px; }
+
+  /* ---------- chart ---------- */
+  .chart { position: relative; padding: 6px 0 4px; }
+  .row { display: flex; align-items: center; height: 40px; }
+  .row .lbl { width: 210px; flex: 0 0 210px; font-size: 13px; color: #374151; text-align: right; padding-right: 12px; }
+  .track { position: relative; flex: 1; height: 22px; background: #f1f3f5; border-radius: 4px; }
+  .barv { position: absolute; top: 0; bottom: 0; left: 0; border-radius: 4px; background: var(--blue); }
+  .row.best .barv { background: var(--good-ink); }
+  .valtag { position: absolute; top: 0; bottom: 0; display: flex; align-items: center; font-size: 12px; font-weight: 700; color: var(--ink); padding: 0 2px; white-space: nowrap; transform: translateX(8px); }
+  .reflines { position: absolute; left: 210px; right: 0; top: -4px; bottom: -4px; pointer-events: none; }
+  .refline { position: absolute; top: 0; bottom: 0; border-left: 2px dashed; z-index: 2; }
+  .reflabel { position: absolute; font-size: 11px; font-weight: 700; white-space: nowrap; line-height: 1; }
+  .xaxis { display: flex; margin-top: 8px; padding-left: 210px; font-size: 11px; color: var(--muted); }
+  .xaxis span { flex: 1; }
+  .xaxis span:nth-child(2) { text-align: center; }
+  .xaxis span:nth-child(4) { text-align: center; }
+  .xaxis span:last-child { text-align: right; }
+  .legend { margin-top: 14px; font-size: 12.5px; color: #374151; display: flex; gap: 20px; flex-wrap: wrap; }
+  .legend .dot { display: inline-block; width: 16px; height: 0; border-top: 2px dashed; margin-right: 6px; vertical-align: middle; }
+
+  /* ---------- table ---------- */
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  thead th {
+    background: var(--head-bg);
+    text-align: left;
+    padding: 10px 10px;
+    font-weight: 600;
+    border-bottom: 2px solid var(--line);
+    white-space: nowrap;
+  }
+  tbody td { padding: 10px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tbody tr:last-child td { border-bottom: none; }
+  td.num { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
+  .folds { font-weight: 400; font-size: 11px; color: var(--muted); white-space: normal; line-height: 1.5; margin-top: 2px; }
+  .best { background: var(--good); }
+  .best .num { color: var(--good-ink); }
+  .bad { background: var(--warn); }
+  .bad .num { color: var(--warn-ink); }
+  .tag { font-size: 11px; color: var(--muted); font-weight: 400; }
+  .footnote { margin-top: 14px; font-size: 12px; color: var(--muted); line-height: 1.7; }
+  .footnote li { margin-bottom: 4px; }
+  @media print {
+    body { background: #fff; }
+    .card { break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>GLaS 腺体分割 · 各版本结果对比</h1>
+  <p class="sub">对象级评估（官方协议）｜数据源：RESEARCH_LOG.md · 更新于 2026-09-22</p>
+
+  <div class="summary">
+    一句话结论：所有版本 testB 对象级 Dice 都卡在 <b>0.69~0.75</b>，远低于 SOTA <b>0.918</b>、也未打赢朴素 <b>U-Net 基线 0.768</b>；瓶颈是<b>恶性腺体的实例分离 + 跨集泛化</b>，而非编码器或几何预处理。<b>PUMA 证明 AI 自主能打（+12%），GLaS 暴露它会跑偏——一正一反。</b>
+  </div>
+
+  <div class="card">
+    <h2>测试集 B（testB）对象级 Dice 对比</h2>
+    <div class="chart">
+      <!-- 参照线：包在 .reflines 里，left 百分比相对条形绘图区（210px 后），与横轴、条形共用零点 -->
+      <div class="reflines">
+        <div class="refline" style="left: 76.8%; border-color: var(--baseline);">
+          <div class="reflabel" style="top: -22px; transform: translateX(-50%); color: var(--baseline);">U-Net 基线 0.768</div>
+        </div>
+        <div class="refline" style="left: 91.8%; border-color: var(--target);">
+          <div class="reflabel" style="top: -6px; transform: translateX(-100%); color: var(--target);">SOTA · RIC-UNet 0.918</div>
+        </div>
+      </div>
+
+      <div class="row">
+        <div class="lbl">UNI v1 + 轮廓法（旧拉伸）</div>
+        <div class="track"><span class="barv" style="width: 73.16%;"></span><span class="valtag" style="left: 73.16%;">0.7316</span></div>
+      </div>
+      <div class="row best">
+        <div class="lbl">UNI v1 + watershed（不重训）</div>
+        <div class="track"><span class="barv" style="width: 75.13%;"></span><span class="valtag" style="left: 75.13%;">0.7513</span></div>
+      </div>
+      <div class="row">
+        <div class="lbl">v2 · 768px + 深ResBlock</div>
+        <div class="track"><span class="barv" style="width: 68.67%;"></span><span class="valtag" style="left: 68.67%;">0.6867</span></div>
+      </div>
+      <div class="row">
+        <div class="lbl">letterbox 重训 + watershed</div>
+        <div class="track"><span class="barv" style="width: 72.58%;"></span><span class="valtag" style="left: 72.58%;">0.7258</span></div>
+      </div>
+      <div class="row">
+        <div class="lbl">letterbox + HoVer 距离图头</div>
+        <div class="track" style="background: #fafafa;"><span class="valtag" style="color: var(--muted); left: 0; padding-left: 8px;">val 0.7575（fold 0.7324–0.7862）· testB 待测</span></div>
+      </div>
+
+      <div class="xaxis">
+        <span>0</span><span>0.25</span><span>0.5</span><span>0.75</span><span>1.0</span>
+      </div>
+    </div>
+    <div class="legend">
+      <span><span class="dot" style="border-color: var(--baseline);"></span>U-Net 朴素基线 0.768</span>
+      <span><span class="dot" style="border-color: var(--target);"></span>SOTA 目标（RIC-UNet）0.918</span>
+      <span><span class="dot" style="border-color: var(--good-ink); border-top-style: solid;"></span>当前 testB 最优 0.7513</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>瓶颈定位：良性 vs 恶性 腺体 F1（UNI v1）</h2>
+    <div class="chart">
+      <div class="row">
+        <div class="lbl">良性腺体 F1</div>
+        <div class="track"><span class="barv" style="width: 87%; background: var(--good-ink);"></span><span class="valtag" style="left: 87%;">0.87</span></div>
+      </div>
+      <div class="row">
+        <div class="lbl">恶性腺体 F1</div>
+        <div class="track"><span class="barv" style="width: 69%; background: var(--warn-ink);"></span><span class="valtag" style="left: 69%;">0.69</span></div>
+      </div>
+      <div class="xaxis">
+        <span>0</span><span>0.25</span><span>0.5</span><span>0.75</span><span>1.0</span>
+      </div>
+    </div>
+    <ul class="footnote">
+      <li>恶性腺体 F1 比良性低 <b>0.18</b> → 密集粘连的恶性腺体实例分离是核心瓶颈，也是后续 HoVer 距离图头 / 分水岭要攻的点。</li>
+    </ul>
+  </div>
+
+  <div class="card">
+    <h2>版本演进总览</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>版本（主要改动）</th>
+          <th>val objD</th>
+          <th>testB objD</th>
+          <th>testB objF1</th>
+          <th>testA objD</th>
+          <th>结论</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>UNI v1 · 双头 + 轮廓法 <span class="tag">（旧拉伸预处理）</span></td>
+          <td class="num">0.8075</td>
+          <td class="num">0.7316</td>
+          <td class="num">0.7436</td>
+          <td class="num">—</td>
+          <td>起点：像素准，实例分离弱</td>
+        </tr>
+        <tr class="best">
+          <td>UNI v1 + watershed 后处理 <span class="tag">（不重训）</span></td>
+          <td class="num">0.8075</td>
+          <td class="num">0.7513</td>
+          <td class="num">0.7622</td>
+          <td class="num">0.8198</td>
+          <td>后处理 +0.02，当时最优</td>
+        </tr>
+        <tr class="bad">
+          <td>v2 · 768px + 深 ResBlock + 强增强</td>
+          <td class="num">0.7873</td>
+          <td class="num">0.6867</td>
+          <td class="num">0.7235</td>
+          <td class="num">0.8156</td>
+          <td>三项叠加回归 → 弃用</td>
+        </tr>
+        <tr class="bad">
+          <td>CNN DCAN · ResNet34 + skip + 双头 + 深监督</td>
+          <td class="num">0.6489 <span class="tag">*fold0</span></td>
+          <td class="num">—</td>
+          <td class="num">—</td>
+          <td class="num">—</td>
+          <td>翻车：CNN 实现缩水，低于 UNI</td>
+        </tr>
+        <tr>
+          <td>letterbox 重训 · UNI 双头 + watershed</td>
+          <td class="num">0.7833</td>
+          <td class="num">0.7258</td>
+          <td class="num">0.7752</td>
+          <td class="num">0.7939</td>
+          <td>几何修复无收益</td>
+        </tr>
+        <tr class="bad">
+          <td>letterbox + HoVer 距离图头 · hover 后处理</td>
+          <td class="num">0.7575<div class="folds">0.7324 / 0.7862 / 0.7751 / 0.7414 / 0.7526</div></td>
+          <td class="num">待测</td>
+          <td class="num">待测</td>
+          <td class="num">待测</td>
+          <td>val -0.026，待 testB/testA</td>
+        </tr>
+      </tbody>
+    </table>
+    <ul class="footnote">
+      <li><b>*fold0</b>：仅第 0 折单折结果；其余 val 为该配置 5 折均值。单折噪声约 ±0.07。</li>
+      <li>testB / testA 均取该配置<b>后处理调优后的最优值</b>。</li>
+      <li><b>口径提示</b>：旧拉伸预处理下 val/testB 可能虚高；letterbox 修正后更"诚实"，两者不可直接跨预处理比较。</li>
+      <li><b>SOTA 参照（testB Dice）</b>：U-Net 基线 0.768 / DCAN 0.897 / MILD-Net 0.913 / RIC-UNet 0.918。</li>
+    </ul>
+  </div>
+
+</div>
+</body>
+</html>

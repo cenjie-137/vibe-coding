@@ -28,8 +28,33 @@ docker_submission/
 test_input/
 test_output/
 
+# ===== 密钥 / 凭据（绝不允许入库）=====
+.ssh_keys/
+*.pem
+*.key
+id_rsa*
+id_ed25519*
+.env
+.env.*
+
+# ===== 第三方下载 / 大体积中间产物 =====
+_unode_dl/repo/
+_unode_dl/data_bmp/
+_unode_dl/upload_repo/
+
+# ===== 推理预测产物（可由权重+脚本重生成）=====
+glas_test_pred/
+glas_unode_pred/
+glas_unode_pred_label/
+
+# ===== 临时输出 =====
+_t_out.txt
+_t_err.txt
+
 # ===== 本地工具 / IDE / 系统 =====
 .agents/
+.trae/
+.trae-html-share-packages/
 .vscode/
 .idea/
 .DS_Store

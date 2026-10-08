@@ -1,0 +1,40 @@
+{
+  "task": "GLaS",
+  "policy_version": "1.5",
+  "phase": "reproduce",
+  "current_route": "R05_UNODE",
+  "route_index": 0,
+  "route_total": 5,
+  "small_rounds": {
+    "count": 0,
+    "history": []
+  },
+  "big_rounds": {
+    "count": 0,
+    "history": []
+  },
+  "best": {
+    "metric": "testB_objDice",
+    "value": 0.0,
+    "source": "ours",
+    "note": "只记自研/改进模型的结果（红线 R10）；复现别人的方法所得分数见 anchor，不得写进这里"
+  },
+  "anchor": {
+    "route": "R05_UNODE",
+    "metric": "testB_objDice",
+    "subset": "testB",
+    "convention": "official_object_level",
+    "reported_value": 0.842,
+    "reproduced_value": null,
+    "source_url": "https://arxiv.org/abs/1910.10470",
+    "verified": false,
+    "note": "口径校验锚点：复现 U-Node 成功后把实测值写入 reproduced_value。按红线 R10 不计入 best —— 那是别人的方法。"
+  },
+  "baseline_ref": {
+    "nnunet": 0.8184,
+    "sota": 0.842
+  },
+  "routes_failed": [],
+  "stop_reason": null,
+  "updated_at": "2026-10-08T16:12:00+08:00"
+}

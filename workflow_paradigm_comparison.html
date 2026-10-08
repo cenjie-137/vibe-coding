@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>执行范式对比：人肉搬运 → Agent 自主闭环</title>
+<style>
+  :root{
+    --ink:#16202e; --ink2:#4b5a6e; --ink3:#8a97a8; --line:#e3e9f0;
+    --bg:#f6f8fb; --card:#fff;
+    --old:#94a3b8; --oldbg:#f1f4f8; --oldink:#64748b;
+    --new:#0f9d6e; --newbg:#ecfdf5; --newink:#0b7a55;
+    --human:#c2410c; --humanbg:#fff4ec;
+    --accent:#2b6cb0;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei","PingFang SC",sans-serif;
+    line-height:1.6;-webkit-font-smoothing:antialiased;}
+  .wrap{max-width:1180px;margin:0 auto;padding:38px 26px 70px;}
+  header{border-bottom:3px solid var(--ink);padding-bottom:16px;margin-bottom:26px;}
+  h1{font-size:25px;margin:0 0 8px;letter-spacing:-.3px;}
+  .sub{font-size:13.5px;color:var(--ink2);}
+  .sub b{color:var(--ink);}
+  h2{font-size:19px;margin:40px 0 8px;padding-left:12px;border-left:5px solid var(--new);}
+  h2 .n{color:var(--ink3);font-weight:400;font-size:15px;margin-right:8px;}
+  .lead{font-size:14px;color:var(--ink2);margin:6px 0 16px;}
+
+  /* ===== 主对比表 ===== */
+  table{width:100%;border-collapse:separate;border-spacing:0;font-size:13.5px;}
+  th,td{padding:11px 14px;vertical-align:top;border-bottom:1px solid var(--line);}
+  thead th{font-size:13px;letter-spacing:.2px;position:sticky;top:0;}
+  thead th.dim{background:#e9eef5;color:var(--ink2);width:15%;border-radius:8px 0 0 0;}
+  thead th.colA{background:var(--oldbg);color:var(--oldink);width:42.5%;}
+  thead th.colB{background:var(--newbg);color:var(--newink);width:42.5%;border-radius:0 8px 0 0;}
+  td.dim{font-weight:700;background:#fafcfe;color:var(--ink);font-size:13px;}
+  td.colA{background:#fcfdfe;color:var(--ink2);}
+  td.colB{background:#fbfefc;color:var(--ink);}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:12px;}
+  .pill{display:inline-block;font-size:11px;padding:1px 8px;border-radius:20px;font-weight:700;margin-right:6px;}
+  .pill.h{background:var(--humanbg);color:var(--human);}
+  .pill.a{background:#e2e8f0;color:var(--oldink);}
+  .pill.n{background:#d3f5e6;color:var(--newink);}
+  .k{color:var(--ink);font-weight:600;}
+  .hl{background:#fff3bf;padding:0 3px;border-radius:3px;font-weight:600;}
+
+  /* ===== 流程图 ===== */
+  .flow{border:1px solid var(--line);border-radius:10px;background:var(--card);padding:20px 22px;margin-top:12px;}
+  .flow h3{margin:0 0 4px;font-size:15px;}
+  .flow .desc{font-size:12.5px;color:var(--ink3);margin:0 0 16px;}
+  .chips{display:flex;align-items:center;flex-wrap:wrap;gap:8px;}
+  .chip{font-size:12.5px;padding:8px 13px;border-radius:8px;border:1.5px solid var(--line);background:#fff;font-weight:600;white-space:nowrap;}
+  .chip.local{background:#eef2f7;border-color:#d3dbe6;color:var(--oldink);}
+  .chip.srv{background:#eaf1fb;border-color:#c9dcf5;color:#1d4ed8;}
+  .chip.human{background:var(--humanbg);border-color:#fbd0b0;color:var(--human);}
+  .chip.agent{background:var(--newbg);border-color:#8fe0c0;color:var(--newink);}
+  .arrow{color:var(--ink3);font-weight:700;font-size:15px;}
+  .loopnote{font-size:12px;color:var(--human);margin-top:12px;font-weight:600;}
+  .loopnote.good{color:var(--newink);}
+
+  /* ===== 改动清单 ===== */
+  .chg{border:1px solid var(--line);border-radius:10px;background:var(--card);overflow:hidden;margin:14px 0;}
+  .chg .hd{padding:11px 16px;font-weight:700;font-size:14px;display:flex;align-items:center;gap:10px;}
+  .chg.p1 .hd{background:#eaf1fb;color:#1d4ed8;}
+  .chg.p2 .hd{background:#f0eefb;color:#5b46c9;}
+  .chg.p3 .hd{background:#fdf0ee;color:#b3452c;}
+  .chg .hd .ver{font-size:11px;font-weight:600;background:rgba(255,255,255,.7);padding:2px 8px;border-radius:20px;}
+  .chg table{font-size:13px;}
+  .chg thead th{background:#f7f9fc;color:var(--ink2);font-size:12px;}
+  .chg td{padding:9px 14px;}
+  .chg td.loc{width:20%;font-weight:600;color:var(--ink);}
+  .chg td.now{width:36%;color:var(--ink3);}
+  .chg td.todo{width:44%;color:var(--ink);}
+  code{background:#eef2f7;padding:1px 5px;border-radius:4px;font-size:12px;font-family:"SF Mono",Consolas,monospace;}
+  .bad{color:#c02c2c;font-weight:700;}
+  .good{color:var(--newink);font-weight:700;}
+
+  .script{border-left:5px solid var(--new);background:var(--newbg);border-radius:8px;padding:16px 20px;margin-top:14px;font-size:14px;}
+  .script b{color:var(--newink);}
+  footer{margin-top:40px;padding-top:16px;border-top:1px solid var(--line);font-size:12px;color:var(--ink3);}
+  @media print{body{background:#fff;}.wrap{padding:0;}h2{break-before:page;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>执行范式对比：从「人肉搬运」到「Agent 自主闭环」</h1>
+  <div class="sub">
+    左：<b>范式 A · 本地改码 + 人工上传 + 回贴报错</b>（`PROMPT_STANDARD.md` v1.1 时期）&nbsp;·&nbsp;
+    右：<b>范式 B · SSH 直连 + Agent 自主训练/迭代/纠错</b>（当前）<br>
+    固定项不变：TRAE + DeepSeek-V4-Pro（禁 Auto）、temperature=0.7、seed=42、5 折分层 CV、官方协议评估
+  </div>
+</header>
+
+<!-- ================= 1. 两列对比表 ================= -->
+<h2><span class="n">01</span>两列对比表（核心页）</h2>
+<p class="lead">同一套研究目标、同一个模型、同一个 seed —— 唯一变量是<b>"谁在执行、谁在搬运、谁在纠错"</b>。</p>
+
+<div class="card">
+<table>
+  <thead>
+    <tr>
+      <th class="dim">对比维度</th>
+      <th class="colA">范式 A · 人肉搬运（v1.1 时期）</th>
+      <th class="colB">范式 B · Agent 自主闭环（现在）</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="dim">① 代码在哪改</td>
+      <td class="colA">AI 在<b>本地 TRAE</b> 生成代码，落在本地磁盘</td>
+      <td class="colB">Agent <b>直连服务器</b>，直接读 / 写 / 改远端文件</td>
+    </tr>
+    <tr>
+      <td class="dim">② 代码怎么同步</td>
+      <td class="colA"><span class="pill h">人工</span>手动 scp / 复制粘贴上传到服务器</td>
+      <td class="colB"><span class="pill n">无</span>不存在"同步"这一步，Agent 直接操作远端</td>
+    </tr>
+    <tr>
+      <td class="dim">③ 命令谁执行</td>
+      <td class="colA"><span class="pill h">人工</span>人在服务器终端手敲命令</td>
+      <td class="colB"><span class="pill n">Agent</span>经 <code>.ssh_keys/remote.py</code>（paramiko 免密）自主执行</td>
+    </tr>
+    <tr>
+      <td class="dim">④ 报错回路</td>
+      <td class="colA"><span class="pill h">人工往返</span>人复制报错 → 粘贴给 AI → AI 改 → 人再上传 → 再跑，<b>每一轮都要人接力</b></td>
+      <td class="colB"><span class="pill n">闭环</span>Agent 直接读 <code>stderr</code> / <code>train.log</code> → 自行定位 → 最小修复 → <b>自动重跑</b></td>
+    </tr>
+    <tr>
+      <td class="dim">⑤ 单轮迭代耗时</td>
+      <td class="colA"><b>分钟 ~ 小时级</b>，卡在人的往返与在线时间</td>
+      <td class="colB"><b>秒 ~ 分钟级</b>，无人工等待；可连续自主迭代</td>
+    </tr>
+    <tr>
+      <td class="dim">⑥ 长时训练管理</td>
+      <td class="colA"><span class="pill h">人工</span>人守着终端，手动 nohup，断了要重连</td>
+      <td class="colB"><span class="pill n">Agent</span><code>setsid nohup</code> 后台启动 + 主动轮询日志监控（断网不影响）</td>
+    </tr>
+    <tr>
+      <td class="dim">⑦ 人机干预计数</td>
+      <td class="colA"><code>human_intervention_count</code> 每次改码 / 上传都 <b>+1（数值高）</b></td>
+      <td class="colB">人工干预<b>趋近 0</b>；新增 <code>agent_ops_count</code> 记录 Agent 自主动作数</td>
+    </tr>
+    <tr>
+      <td class="dim">⑧ 可复现留痕</td>
+      <td class="colA"><span class="pill h">人工</span>靠人手工记录命令与日志，易漏记</td>
+      <td class="colB">命令 / 日志<b>自动落盘</b>：<code>remote.py</code> 输出、<code>train.log</code>、RESEARCH_LOG 三层记忆</td>
+    </tr>
+    <tr>
+      <td class="dim">⑨ 上下文连续性</td>
+      <td class="colA">人搬运时<b>报错易被截断</b>、上下文丢失，AI 只能看到人转述的片段</td>
+      <td class="colB">Agent <b>全程持有完整上下文</b>，零信息损耗，能追溯到原始日志</td>
+    </tr>
+    <tr>
+      <td class="dim">⑩ 主要风险</td>
+      <td class="colA">人成瓶颈；粘贴不全；重复劳动；<b>人误操作</b></td>
+      <td class="colB"><span class="hl">Agent 跑偏 / 幻觉 / 误操作</span>（GLaS 误锁 UNI、CNN 路线翻车）→ 必须配护栏</td>
+    </tr>
+    <tr>
+      <td class="dim">⑪ 本项目实证</td>
+      <td class="colA"><b>PUMA</b>：UNI 手写方案，人上传训练 → TTA Micro Dice <b>0.6762</b></td>
+      <td class="colB"><b>DRIVE / GLaS</b>：Agent 自主 5 折训练 + 官方口径评估 + 自主纠错 → CV Dice <b>0.7990 / 0.9276</b></td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<!-- ================= 2. 流程图 ================= -->
+<h2><span class="n">02</span>流程对比：线性人肉 vs 闭环自主</h2>
+
+<div class="flow">
+  <h3>范式 A · 人肉搬运（人在回路中，是瓶颈）</h3>
+  <p class="desc">每跑一次实验，人都要在"AI → 服务器 → AI"之间搬运两次。</p>
+  <div class="chips">
+    <span class="chip local">① 本地 AI 写码</span><span class="arrow">→</span>
+    <span class="chip human">② 人上传</span><span class="arrow">→</span>
+    <span class="chip srv">③ 服务器执行</span><span class="arrow">→</span>
+    <span class="chip human">④ 人复制报错</span><span class="arrow">→</span>
+    <span class="chip local">⑤ AI 改码</span><span class="arrow">↺</span>
+  </div>
+  <p class="loopnote">↺ 回到 ② —— 每轮迭代都需要人接力，人不在就停摆</p>
+</div>
+
+<div class="flow" style="margin-top:16px">
+  <h3>范式 B · Agent 自主闭环（人只在关键节点审核）</h3>
+  <p class="desc">Agent 自己完成"执行 → 读日志 → 诊断 → 修复 → 重跑"的闭环，人退出日常回路。</p>
+  <div class="chips">
+    <span class="chip agent">① Agent 写码</span><span class="arrow">→</span>
+    <span class="chip agent">② SSH 直连执行</span><span class="arrow">→</span>
+    <span class="chip agent">③ 读 train.log / stderr</span><span class="arrow">→</span>
+    <span class="chip agent">④ 自诊断 + 最小修复</span><span class="arrow">↺</span>
+  </div>
+  <p class="loopnote good">↺ 回到 ② —— 全自动闭环；人只在「定方向、审关键结果、确认破坏性操作」时介入</p>
+</div>
+
+<!-- ================= 3. 改动清单 ================= -->
+<h2><span class="n">03</span>文件改动清单（要放进 PPT 的第二块）</h2>
+<p class="lead">核心矛盾：v1.1 的模板是<b>为"人肉搬运"设计的</b> —— 元数据只记"人改了几次码"，工作流写成"写码给人上传"。范式 B 下这些字段与步骤全部失真，需要改。</p>
+
+<div class="chg p1">
+  <div class="hd">PROMPT_STANDARD.md <span class="ver">v1.1 → v2.0</span></div>
+  <table>
+    <thead><tr><th>位置</th><th>v1.1 现状</th><th>需要改动</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="loc">元数据头</td>
+        <td class="now">只有 <code>human_intervention_count</code> 单一计数；<b>无执行范式字段</b></td>
+        <td class="todo">新增 <code>execution_mode: local_manual | ssh_agent</code>；把单一计数拆成 <code>human_code_edits</code> / <code>human_ops_actions</code> / <code>agent_ops_count</code>；新增 <code>ssh_host</code>、<code>remote_exec_tool</code>、<code>agent_autonomy_level</code></td>
+      </tr>
+      <tr>
+        <td class="loc">系统提示<br>（Fixed）</td>
+        <td class="now">13 条规则<b>全部是"写代码"</b>，没有一条涉及执行 / 运维 / 纠错</td>
+        <td class="todo">新增<b>授权与护栏</b>：① 允许 Agent 自主执行远程命令、读日志、迭代纠错；② 每步远程命令必须留痕；③ 长时训练必须 <code>setsid nohup</code> + 监控；④ <b>破坏性操作（删权重 / 覆盖 / 清目录）须先确认</b></td>
+      </tr>
+      <tr>
+        <td class="loc">任务提示<br>· 输出要求</td>
+        <td class="now">输出 <code>models.py</code> / <code>dataset.py</code> / <code>train.py</code> / <code>inference.py</code>，<b>交人上传</b></td>
+        <td class="todo">改为"Agent 直接部署到远端并跑通 smoke test"；新增<b>「远程执行清单（命令序列）+ 监控策略」</b>作为标准交付物</td>
+      </tr>
+      <tr>
+        <td class="loc">人工干预日志</td>
+        <td class="now"><code>intervention_xxx</code> 只记人工改码</td>
+        <td class="todo">升级为<b>「人机动作日志」</b>：<code>human_*</code> 与 <code>agent_*</code> 分开记；新增<b>「自主纠错案例」</b>字段（报错 → 诊断 → 修复 → 重跑）</td>
+      </tr>
+      <tr>
+        <td class="loc">复现清单</td>
+        <td class="now">14 项，<b>全部人-centric</b>（人改码 / 人上传 / 人记录）</td>
+        <td class="todo">新增：远程命令留痕、后台任务 PID / 日志路径、SSH 密钥与通道版本、<b>Agent 自主修改的 diff</b></td>
+      </tr>
+      <tr>
+        <td class="loc">新增章节</td>
+        <td class="now">—</td>
+        <td class="todo">新增<b>「执行范式与边界」</b>章节（即本页第 01 节对比表），把两种范式写进模板正文</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="chg p2">
+  <div class="hd">SESSION_HANDOFF.md <span class="ver">会话交接文件</span></div>
+  <table>
+    <thead><tr><th>位置</th><th>现状</th><th>需要改动</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="loc">§2 固定配置</td>
+        <td class="now">隐含"人上传"，<b>未声明执行范式</b></td>
+        <td class="todo">明确写「<b>执行范式：SSH Agent 自主闭环</b>」；登记免密工具 <code>remote.py</code> 与 nnunet 环境变量</td>
+      </tr>
+      <tr>
+        <td class="loc">§4 标准工作流</td>
+        <td class="now">Step 1–6 写成<b>"写代码 → 人上传 → 跑"</b></td>
+        <td class="todo">每步改为"<b>Agent 在服务器直接执行 + 自检 + 纠错</b>"；新增贯穿全流程的<b>「自主纠错回路」</b>；Step 4 训练改为 <code>setsid nohup</code> 后台 + 日志监控</td>
+      </tr>
+      <tr>
+        <td class="loc">§5 决策状态</td>
+        <td class="now">写"testB objDice 0.7513 <b>落后 U-Net 基线 0.768</b>"</td>
+        <td class="todo"><b class="bad">修正</b>：经核实 0.768 是<b>口径错配</b>（U-Net 像素级 IoU 76.81% / testA 对象级 F1 0.766），<b>不是 testB 对象级 Dice</b></td>
+      </tr>
+      <tr>
+        <td class="loc">§6 文件清单</td>
+        <td class="now">只有 <code>.md</code> + <code>prompt_logger.py</code></td>
+        <td class="todo">新增 <code>.ssh_keys/remote.py</code>、<code>.ssh_keys/glas_monitor.py</code>、<code>train.log</code>、<code>nnunet_baseline_results.json</code></td>
+      </tr>
+      <tr>
+        <td class="loc">§7 服务器信息</td>
+        <td class="now">两个实例 / 端口<b>混写</b>（44263 与 14531），无"免密"标注</td>
+        <td class="todo">拆分为「LLM 主线实例」vs「nnU-Net 基线实例」；标注<b>免密状态与用途</b></td>
+      </tr>
+      <tr>
+        <td class="loc">新增章节</td>
+        <td class="now">—</td>
+        <td class="todo">新增<b>「人机分工边界」</b>：Agent 自主做什么 / 人必须审核什么（防止第 ⑩ 行风险）</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div class="chg p3">
+  <div class="hd">prompt_logger.py <span class="ver">配套改动（元数据落地）</span></div>
+  <table>
+    <thead><tr><th>位置</th><th>现状</th><th>需要改动</th></tr></thead>
+    <tbody>
+      <tr>
+        <td class="loc">ExperimentMetadata</td>
+        <td class="now">字段止于 <code>human_intervention_count</code> / <code>total_interaction_turns</code></td>
+        <td class="todo">新增 <code>execution_mode</code>、<code>agent_ops_count</code>、<code>human_code_edits</code>、<code>human_ops_actions</code>、<code>ssh_host</code>、<code>remote_exec_tool</code></td>
+      </tr>
+      <tr>
+        <td class="loc">日志函数</td>
+        <td class="now">只有 <code>log_intervention()</code>（人工改码）</td>
+        <td class="todo">新增 <code>log_agent_action()</code>：记录 Agent 自主执行的命令、耗时、结果、<b>是否触发自纠错</b></td>
+      </tr>
+      <tr>
+        <td class="loc">复现报告</td>
+        <td class="now">只输出一行 "Human Interventions"</td>
+        <td class="todo">改为 <b>"Human vs Agent Actions" 对照</b>，让两种范式的干预量可量化对比</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ================= 4. 讲稿 ================= -->
+<h2><span class="n">04</span>一句话讲稿</h2>
+<div class="script">
+  <p style="margin:0">"我们最初是<b>人肉搬运</b>：AI 在本地写码，人上传到服务器，跑完再把报错贴回来 —— 人卡在回路里，是瓶颈。现在我们让 <b>Agent 直接 SSH 连服务器</b>，自己执行、自己读日志、自己纠错、自己重跑，<b>人退出日常回路，只在定方向和审关键结果时介入</b>。所以这套 <code>PROMPT_STANDARD.md</code> 要从 v1.1 升级到 v2.0 —— 因为 v1.1 的元数据只记'人改了几次码'、工作流写成'写码给人上传'，这些字段和步骤在自主范式下<b>全部失真</b>，必须换成能记录 Agent 自主动作、并能给人机干预量做对照的新版本。"</p>
+</div>
+
+<footer>
+  生成于 2026-09-29 · 用于 GLaS 组会 PPT · 依据实际文件：<code>PROMPT_STANDARD.md</code>(v1.1)、<code>SESSION_HANDOFF.md</code>、<code>prompt_logger.py</code>、<code>.ssh_keys/remote.py</code>、<code>NNUNET_BASELINE_AGENT_PROMPT.md</code>
+</footer>
+
+</div>
+</body>
+</html>
