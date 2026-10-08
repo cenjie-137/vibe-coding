@@ -1,4 +1,4 @@
-# DATASETS — 数据集目录（人写）
+﻿# DATASETS — 数据集目录（人写）
 #
 # 这是"我们一共要处理哪些数据集"的唯一清单，也是 policy.json 里 targets 的来源。
 # 加一个数据集 = 在这里加一条 + 跑 `python build_policy.py --write`。不需要改任何代码。
@@ -24,7 +24,7 @@
 #   没有来源就先留 null —— 宁可空着，不许编。
 
 meta:
-  version: "1.2"
+  version: "1.1"
   updated: "2026-10-08"
   note: >
     首批 15 个数据集。前 3 个（GLaS / DRIVE / PUMA）是本项目已有数据、已就绪；
@@ -32,13 +32,9 @@ meta:
 
 # ── 口径注册表（红线 R1 的受控词表）────────────────────────────────
 # 参与比较的数字必须同 metric + subset + convention；跨口径一律不可比。
-# ⚠ 2026-10-08 裁定：对象级口径必须区分「提交形态」—— 同一批预测，
-#   实例标签提交 vs 二值提交可差 ≈0.02（GLaS 实测）。故拆成两个 id。
 conventions:
   official_object_level:
-    desc: 官方对象级（实例标签提交形态）—— 预测以实例标签图提交（相邻腺体像素可粘连但标签独立），1:1 最大重叠对应 + 面积加权 + 数据集级池化
-  official_object_level_binary:
-    desc: 官方对象级（二值提交形态）—— 预测为二值前景图，按连通域重新标注成对象；仅用于口径校准记录，不作 GLaS 的判定口径
+    desc: 官方对象级 —— 1:1 最大重叠对应 + 面积加权 + 数据集级池化
   pixel_level:
     desc: 像素级 —— 逐图像素 Dice，多折交叉验证后取均值
   official_micro_dice:
@@ -70,11 +66,6 @@ datasets:
       来源 arXiv:1910.10470 Table 1（官方对象级口径）。
       选它的理由：**该路线有可复现的开源代码**（ROUTE_POOL R05），能当复现锚点。
       原 L2 = MILD-Net 0.836 于 2026-10-08 上移 —— MILD-Net 无官方代码，做不了锚点。
-      【2026-10-08 口径裁定，policy v1.6】convention 采用**实例标签提交形态**
-      （评估脚本 --pred_kind label）。依据：GLaS 官方提交本就是实例标签图；同一批 U-Node
-      预测 label 0.8440 vs binary 0.8215，≈0.02 的差全部来自「是否做实例分离」。
-      nnU-Net 的二值连通域即其实例形态，故 L1=0.8184 在两种形态下同值、不受影响；
-      L2=0.842 是文献实例口径，二者可比（同 convention）。
 
   - task: DRIVE
     status: active

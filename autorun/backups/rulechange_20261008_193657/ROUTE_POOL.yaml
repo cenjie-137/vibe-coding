@@ -1,4 +1,4 @@
-# ROUTE_POOL — 候选路线池
+﻿# ROUTE_POOL — 候选路线池
 #
 # 由 Step 0 调研产出，Agent **按 routes 列表顺序**取用；弃一条就取池中下一条。
 # 因此 routes 的排列顺序 = 尝试优先级，不是随便排的。
@@ -59,11 +59,6 @@
 #       而 judge 是按 route_index 顺序推进的；若 R05 之前还压着 R01/R02/R04，
 #       一旦 R05 失败就会直接跳到 R06 然后池耗尽，**R04 这条"零成本、见效最快"的路永远轮不到**。
 #       重排后尝试顺序 = R05 → R04 → R06 → R01 → R02，route_total 仍为 5。
-#     · **口径裁定（policy v1.6，2026-10-08）**：GLaS 判定口径定为**实例标签提交形态**
-#       （convention=official_object_level），评估脚本改用 `--pred_kind label`；L2 维持 0.842。
-#       理由：官方提交本就是实例标签；≈0.02 的差全部来自"是否做实例分离"；nnU-Net 的二值连通域
-#       即其实例形态，故 L1=0.8184 不受影响。同批裁定 R1 增加**校准类豁免**
-#       （role 以 `anchor_calibration` 开头的数字排除出比较组）。详见 RESEARCH_LOG §6.12。
 #
 #   ── 仍待人工确认（不阻塞）────────────────────────────────────
 #     · MILD-Net 的 testA/testB 数值本次未能从论文原文表格直接重取；MIA 版 DOI 有两个候选
@@ -72,7 +67,7 @@
 
 task: GLaS
 metric: testB_objDice
-convention: official_object_level     # 官方对象级（实例标签提交形态）：1:1 最大重叠对应 + 面积加权 + 数据集级池化
+convention: official_object_level     # 官方对象级：1:1 最大重叠对应 + 面积加权 + 数据集级池化
 baseline_ref:
   nnunet_baseline: 0.8184             # 本项目 nnU-Net v2 官方口径实测（= L1 线）
   published_sota: 0.842               # U-Node 2019（= L2 线）；来源 arXiv:1910.10470 Table 1
@@ -104,7 +99,6 @@ routes:
       testA_objDice: 0.8872
       testB_objDice: 0.8428
       testB_objF1: 0.6754
-      our_convention_label_testB: 0.8440        # 同一批预测按【实例标签形态】用本仓库脚本评估 → 与 0.8428 互认（差 0.0012）
       our_convention_binary_testB: 0.8215       # 同一批预测改二值、用本仓库口径评估 → 量化口径差 ≈0.02
       evidence: "_unode_dl/unode_metrics.json, glas_unode_pred/, glas_unode_pred_label/, RESEARCH_LOG.md#glas-unode-repro"
     reported_convention: official_object_level
@@ -116,9 +110,8 @@ routes:
       复现值按**红线 R10** 写 state.anchor，**不计入 best**（那是别人的方法）。
       ⚠ 复现暴露一个口径陷阱：同一批预测改二值后用本仓库 eval_glas_official.py 评估只剩 0.8215，
       根因是「实例标签 vs 二值重标注」（相邻腺体在二值图上粘连被合并），详见 RESEARCH_LOG §6.11。
-      ✅ **2026-10-08 已裁定（policy v1.6）**：GLaS 判定口径采用**实例标签提交形态**
-      （convention=official_object_level，评估脚本 --pred_kind label）；L2 维持 0.842。
-      同形态下本仓库脚本给 0.8440、U-Node 官方口径 0.8428，二者互认（差 0.0012）。
+      该口径差需人工裁定（state.pending_human_decisions[GLaS_EVAL_CONVENTION]），裁定前 L2=0.842 与
+      二值口径不可直接比（红线 R1）。
 
   # ── 第 2 顺位：零成本、见效最快 ────────────────────────────────
   - id: R04_NNUNetImproved

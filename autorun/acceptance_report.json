@@ -1,6 +1,6 @@
 {
-  "generated_at": "2026-10-08T19:27:06+08:00",
-  "policy_version": "1.5",
+  "generated_at": "2026-10-08T19:40:30+08:00",
+  "policy_version": "1.6",
   "n_checks": 8,
   "n_passed": 8,
   "all_passed": true,
@@ -59,15 +59,15 @@
       "name": "可信记分卡",
       "cmd": "ledger.py --scorecard",
       "ok": true,
-      "detail": "来源覆盖率 93.8%，16 条数字 / 11 个动作"
+      "detail": "来源覆盖率 93.8%，16 条数字 / 12 个动作"
     }
   ],
   "scorecard": {
     "n_claims": 16,
     "source_coverage": 0.9375,
-    "n_actions": 11,
-    "human_interventions": 5,
-    "destructive_actions": 5,
+    "n_actions": 12,
+    "human_interventions": 6,
+    "destructive_actions": 6,
     "destructive_without_backup": 0,
     "judge_calls": 3
   }

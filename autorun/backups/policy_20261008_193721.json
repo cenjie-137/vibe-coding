@@ -1,5 +1,5 @@
 {
-  "version": "1.6",
+  "version": "1.5",
   "_comment": "机器可读契约 —— judge.py / redlines.py / ledger.py 的唯一数据源。数值必须与 AUTONOMY_POLICY.md 一致。改动只能由人执行，改完版本号 +1 并 git commit（红线 R7）。",
   "targets": {
     "GLaS": {
@@ -9,8 +9,8 @@
       "eval_script": "eval_glas_official.py",
       "l1": 0.8184,
       "l2": 0.842,
-      "l1_note": "起点数据集；框架验证用。L2 = U-Node (Pinckaers & Litjens, 2019) testB ObjDice 0.842， 来源 arXiv:1910.10470 Table 1（官方对象级口径）。 选它的理由：**该路线有可复现的开源代码**（ROUTE_POOL R05），能当复现锚点。 原 L2 = MILD-Net 0.836 于 2026-10-08 上移 —— MILD-Net 无官方代码，做不了锚点。 【2026-10-08 口径裁定，policy v1.6】convention 采用**实例标签提交形态** （评估脚本 --pred_kind label）。依据：GLaS 官方提交本就是实例标签图；同一批 U-Node 预测 label 0.8440 vs binary 0.8215，≈0.02 的差全部来自「是否做实例分离」。 nnU-Net 的二值连通域即其实例形态，故 L1=0.8184 在两种形态下同值、不受影响； L2=0.842 是文献实例口径，二者可比（同 convention）。\n ｜ 来源：RESEARCH_LOG.md#nnunet-glas",
-      "l2_note": "起点数据集；框架验证用。L2 = U-Node (Pinckaers & Litjens, 2019) testB ObjDice 0.842， 来源 arXiv:1910.10470 Table 1（官方对象级口径）。 选它的理由：**该路线有可复现的开源代码**（ROUTE_POOL R05），能当复现锚点。 原 L2 = MILD-Net 0.836 于 2026-10-08 上移 —— MILD-Net 无官方代码，做不了锚点。 【2026-10-08 口径裁定，policy v1.6】convention 采用**实例标签提交形态** （评估脚本 --pred_kind label）。依据：GLaS 官方提交本就是实例标签图；同一批 U-Node 预测 label 0.8440 vs binary 0.8215，≈0.02 的差全部来自「是否做实例分离」。 nnU-Net 的二值连通域即其实例形态，故 L1=0.8184 在两种形态下同值、不受影响； L2=0.842 是文献实例口径，二者可比（同 convention）。\n ｜ 来源：https://arxiv.org/abs/1910.10470"
+      "l1_note": "起点数据集；框架验证用。L2 = U-Node (Pinckaers & Litjens, 2019) testB ObjDice 0.842， 来源 arXiv:1910.10470 Table 1（官方对象级口径）。 选它的理由：**该路线有可复现的开源代码**（ROUTE_POOL R05），能当复现锚点。 原 L2 = MILD-Net 0.836 于 2026-10-08 上移 —— MILD-Net 无官方代码，做不了锚点。\n ｜ 来源：RESEARCH_LOG.md#nnunet-glas",
+      "l2_note": "起点数据集；框架验证用。L2 = U-Node (Pinckaers & Litjens, 2019) testB ObjDice 0.842， 来源 arXiv:1910.10470 Table 1（官方对象级口径）。 选它的理由：**该路线有可复现的开源代码**（ROUTE_POOL R05），能当复现锚点。 原 L2 = MILD-Net 0.836 于 2026-10-08 上移 —— MILD-Net 无官方代码，做不了锚点。\n ｜ 来源：https://arxiv.org/abs/1910.10470"
     },
     "DRIVE": {
       "metric": "cv_dice",
@@ -141,7 +141,7 @@
       "convention": "official_object_level",
       "eval_script": "eval_glas_official.py",
       "verified": true,
-      "note": "起点数据集；框架验证用。L2 = U-Node (Pinckaers & Litjens, 2019) testB ObjDice 0.842， 来源 arXiv:1910.10470 Table 1（官方对象级口径）。 选它的理由：**该路线有可复现的开源代码**（ROUTE_POOL R05），能当复现锚点。 原 L2 = MILD-Net 0.836 于 2026-10-08 上移 —— MILD-Net 无官方代码，做不了锚点。 【2026-10-08 口径裁定，policy v1.6】convention 采用**实例标签提交形态** （评估脚本 --pred_kind label）。依据：GLaS 官方提交本就是实例标签图；同一批 U-Node 预测 label 0.8440 vs binary 0.8215，≈0.02 的差全部来自「是否做实例分离」。 nnU-Net 的二值连通域即其实例形态，故 L1=0.8184 在两种形态下同值、不受影响； L2=0.842 是文献实例口径，二者可比（同 convention）。\n"
+      "note": "起点数据集；框架验证用。L2 = U-Node (Pinckaers & Litjens, 2019) testB ObjDice 0.842， 来源 arXiv:1910.10470 Table 1（官方对象级口径）。 选它的理由：**该路线有可复现的开源代码**（ROUTE_POOL R05），能当复现锚点。 原 L2 = MILD-Net 0.836 于 2026-10-08 上移 —— MILD-Net 无官方代码，做不了锚点。\n"
     },
     "DRIVE": {
       "status": "active",
@@ -314,5 +314,5 @@
   },
   "_catalog_note": "全部数据集清单（含 planned），由 datasets.yaml 编译而来；判定器只读 targets，不读 catalog。",
   "_compiled_from": "autorun/datasets.yaml",
-  "_compiled_at": "2026-10-08T19:37:21+08:00"
+  "_compiled_at": "2026-10-08T16:11:23+08:00"
 }

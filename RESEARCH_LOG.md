@@ -444,17 +444,55 @@ python audit_glas_metric_protocol.py --gt_dir data/glas/masks --pred_dir glas_un
 python audit_glas_metric_protocol.py --gt_dir data/glas/masks --pred_dir glas_unode_pred
 ```
 
-**遗留（需人工裁定，见 §8.2）**：L2 线 0.842 取自 U-Node 的**实例标签**口径，
-而本仓库 `eval_glas_official.py` 目前只吃**二值**。两者不同口径，
-现在拿二值口径去够 0.842，等于"苹果比橘子"（红线 R1）。
-已登记为 `state.pending_human_decisions[GLaS_EVAL_CONVENTION]`，阻塞 Step 2。
+**遗留（已于 §6.12 结清）**：L2 线 0.842 取自 U-Node 的**实例标签**口径，而本仓库
+`eval_glas_official.py` 起初只吃**二值** → 曾登记为 `state.pending_human_decisions[GLaS_EVAL_CONVENTION]`。
+**2026-10-08 已裁定并落地**（policy v1.6）：评估脚本支持 `--pred_kind label`，GLaS 判定口径改为
+**实例标签提交形态**，L2 维持 0.842。详见 §6.12。
 
 **顺带触发一条红线（系统自己抓到的设计缺口）**：把上述校准数字写进 `claims.jsonl` 后，
 红线 **R1** 报 2 项违规 —— 它与原有官方口径数字同 `metric + subset`，被判为"跨口径并列"。
 但这两条数字的用途**恰恰是记录口径差异**、不是拿来比较的，且 R10 已保证它们进不了 `best`。
-说明 R1 的实现比规则文本更严（缺"校准类数字"豁免）。因 `redlines.py` 属 R7 保护文件，
-**Agent 不擅自修改**，已登记为 `state.pending_human_decisions[R1_CALIBRATION_EXEMPTION]`；
-在此之前一键验收为 **7/8**（其余 7 项全过）。
+说明 R1 的实现比规则文本更严（缺"校准类数字"豁免）。曾登记为
+`state.pending_human_decisions[R1_CALIBRATION_EXEMPTION]`；**2026-10-08 已裁定并落地**（policy v1.6）：
+R1 比较组排除 `role` 以 `anchor_calibration` 开头的数字。详见 §6.12。
+
+### 6.12 GLaS 评估口径与 R1 校准豁免裁定（policy v1.5 → v1.6，2026-10-08）
+
+**背景**：§6.11 复现 U-Node 时暴露两个待人工裁定项，登记在 `state.pending_human_decisions`：
+（a）GLaS 评估口径二选一（实例标签 vs 二值）；（b）红线 R1 是否给「校准类数字」加豁免。
+两项均由**人工**裁定为 **A**（Agent 无权改规则，红线 R7），本节记录裁定依据、落地实现与验证结果。
+
+**裁定 A1｜GLaS 判定口径 = 实例标签提交形态（`convention=official_object_level`）**
+- **依据**：GLaS 官方提交本就是**实例标签图**；§6.11 的 16 组协议对照显示，≈0.02 的差
+  **全部**来自「是否做实例分离」（同一预测形态下，连通性 / 匹配 / 聚合彼此相差 <0.002）。
+  nnU-Net 的二值连通域即其实例形态，故 L1=0.8184 两形态同值、不受影响；
+  L2=0.842 是文献实例口径，与判定口径同 convention、可比。
+- **落地**：
+  - `eval_glas_official.py` 新增 `--pred_kind label`（含目录级形态自检 `check_label_dir`）；
+  - `datasets.yaml` 口径注册表拆分 `official_object_level`（**实例标签形态**）与
+    `official_object_level_binary`（二值形态，**仅作校准记录**），meta 版本 1.1 → 1.2；
+  - `claims.jsonl` 两条二值映射记录的 `convention` 改记 `official_object_level_binary`；
+  - `state.json` 的 `anchor` 增记 `reproduced_label_value = 0.8440`（本仓库脚本按实例标签形态评估）。
+- **验证**：同一批 U-Node 预测，本仓库脚本（实例标签形态）得 testB ObjDice **0.8440**，
+  与 U-Node 官方口径 **0.8428** 差 **0.0012**（<0.002）→ 两套实现互认，锚点可用作 L2 基准。
+
+**裁定 A2｜红线 R1 增加「校准类豁免」**
+- **依据**：校准类数字（`role` 以 `anchor_calibration` 开头）与官方口径数字同 metric+subset，
+  但其存在意义恰恰是记录「同一批预测在不同口径下差多少」，**非用于比较**；
+  纳入比较组会让「如实记录口径差异」这个动作本身触发 R1。R10 已保证它们进不了 `best`，风险已隔离。
+- **落地**：`redlines.py` 新增 `CALIBRATION_ROLE_PREFIX` 常量，`check_r1` 先排除该类记录再比口径；
+  新增 2 条自检用例（「排除后通过」/「排除后仍跨口径 → 拦下」）。
+
+**版本收口 v1.5 → v1.6**（受保护文件变更，先备份后改 —— R6/R7，由人工执行）
+- **变更文件**：`AUTONOMY_POLICY.md`（升 v1.6 + 第 1 节「提交形态」说明 + R1 豁免条款）、
+  `datasets.yaml`、`policy.json`（`build_policy.py --write` 重编译）、`state.json`、
+  `ROUTE_POOL.yaml`（R05 note + 全局 `convention` 说明）、`claims.jsonl`、`redlines.py`、`RESEARCH_LOG.md`。
+- **验证**：`redlines.py --selftest` **29/29**；`redlines.py --audit` **15 项 0 违规**（此前 2 违规）；
+  `acceptance.py` **8/8**（此前 7/8）；`judge.py` 11/11、`ledger.py` 10/10、`replay.py` 7/7；
+  可信记分卡来源覆盖率 **93.8%**。
+
+**结论**：口径与红线两处缺口均已闭合，治理层恢复全绿。`state.phase` 由 `reproduce` 推进到
+`improve`，**Step 2 解除阻塞**：可在锚点（U-Node 实例标签口径）上跑「改进 → `judge.py --log` → 换路线」完整循环。
 
 ---
 
@@ -517,13 +555,8 @@ python tune_glas.py --data_dir .../data/glas --weights_dir .../output_glas_cnndc
 - [x] **判定字段变更 v1.3→v1.4**：GLaS L2 由 MILD-Net 0.836 上移到 U-Node 0.842；移除不适用的 R03_RICUnet（§6.9）。
 - [x] **治理收口 v1.4→v1.5**：新增红线 **R10 锚点隔离**、重放**钉死 episode 自带规则版本**、`judge --log` 留痕**强制带 state_snapshot**、GLaS **起跑态** + `EP02_GLaS_real` 起跑包（§6.10）。
 - [x] **Step 1（阶段 1）：数据 / 评估脚本就位 + 复现 U-Node**（§6.11）：本地 `eval_glas_official.py` 自检 testB 0.8184；服务器跑通 U-Node 官方权重推理，官方口径复现 testB ObjDice **0.8428**（论文 0.842）→ 锚点成立，写入 `state.anchor`（**不进 best**，红线 R10）；并顺带量化出 ≈0.02 的「实例标签 vs 二值重标注」口径差。
-- [ ] **⛔ 待人工裁定（阻塞 Step 2）**：GLaS 评估口径二选一 —— 见 `state.pending_human_decisions[GLaS_EVAL_CONVENTION]` / `AUTONOMY_POLICY` R7。
-  - **A**：`eval_glas_official.py` 支持**实例标签**输入（8 连通 + 众数匹配 + 面积加权），L2 维持 0.842；优点是口径与 U-Node / 官方提交形态一致，缺点是脚本要改且后续路线都得输出实例标签。
-  - **B**：维持**二值 + 池化**口径，把 L2 线按同口径重算（U-Node 同口径 0.8215、nnU-Net 0.8184）；优点是脚本不动、口径简单，缺点是 L2 线要下调、与文献报告值不可直接比。
-  - 备注：审计显示两套协议在**同一预测形态**下仅差 <0.002，真正的分水岭是"喂实例标签还是二值"，故裁定本质是"我们对外报告用哪种预测形态"。
-- [ ] **⛔ 待人工裁定（不阻塞 Step 2，阻塞验收 8/8）**：红线 R1 是否给「校准类数字」加豁免 —— 见 `state.pending_human_decisions[R1_CALIBRATION_EXEMPTION]`。
-  - 现状：`redlines.py --audit` 15 项 2 违规、`acceptance.py` 7/8，原因是锚点校准数字与官方口径数字同 metric+subset 被判"跨口径并列"。
-  - 推荐 A：R1 比较组排除 `role` 以 `anchor_calibration` 开头的数字（它们为记录口径差异而存在，且 R10 已保证进不了 best）。
-- [ ] **Step 2（口径裁定后，先不训练）**：用 GLaS 真跑一遍完整循环 —— 复现 R05 U-Node（已完成）→ 在锚点上改进（优先 R04 后处理，零成本）→ `judge.py --log` 判定 → 按决策换路线。**目标：把"一轮 prompt 跑完"的标准化流程跑通并固化。**
+- [x] **裁定 A1｜GLaS 评估口径 = 实例标签提交形态**（policy v1.6，2026-10-08，§6.12）：`eval_glas_official.py` 支持 `--pred_kind label`，`convention=official_object_level`，L2 维持 0.842。依据：≈0.02 的差全部来自「是否做实例分离」；nnU-Net 二值连通域即其实例形态，L1=0.8184 不受影响。验证：本仓库脚本 0.8440 vs U-Node 官方口径 0.8428，差 0.0012 → 互认。
+- [x] **裁定 A2｜红线 R1 增加「校准类豁免」**（policy v1.6，2026-10-08，§6.12）：`redlines.py` 排除 `role` 以 `anchor_calibration` 开头的数字，并补 2 条自检用例。验证：`redlines.py --audit` **15 项 0 违规**、`acceptance.py` **8/8**（均恢复全绿）。
+- [ ] **Step 2（已解除阻塞，先不训练）**：用 GLaS 真跑一遍完整循环 —— 复现 R05 U-Node（已完成）→ 在锚点上改进（优先 R04 后处理，零成本）→ `judge.py --log` 判定 → 按决策换路线。**目标：把"一轮 prompt 跑完"的标准化流程跑通并固化。**
 - [ ] 补 PUMA / DRIVE 官方评估脚本并进 `eval.allowlist`，把二者转为可判定的 `active`。
 - [ ] 扩展到第 2 个数据集（DRIVE 或 PUMA），验证 `datasets.yaml` 的"加一行即可扩展"确实成立。
